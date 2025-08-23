@@ -133,17 +133,17 @@ void FileModeConfig(void){
 
     while(idx <= count){
         ScriptPtrArr[idx].filepointer = (char *) (0xF600 + MetaDataSize*idx);
-        ScriptPtrArr[idx].size = (unsigned int *) (0x1014 + MetaDataSize*idx);
-        ScriptPtrArr[idx].filestatus = (char *) (0x1011 + MetaDataSize*idx);
-        ScriptPtrArr[idx].fileName = NameFlashToRam(idx);
+        ScriptPtrArr[idx].fileSize = (unsigned int *) (0x1014 + MetaDataSize*idx);
+        ScriptPtrArr[idx].fileStatus = (char *) (0x1011 + MetaDataSize*idx);
+        NameFlashToRam(idx);
         idx++;
     }
 
     while (idx < 10){
         ScriptPtrArr[idx].filepointer = 0;
-        ScriptPtrArr[idx].size = 0;
-        ScriptPtrArr[idx].filestatus = 'e';
-        ScriptPtrArr[idx].fileName = '\0';
+        ScriptPtrArr[idx].fileSize = 0;
+        ScriptPtrArr[idx].fileStatus = 'e';
+        ScriptPtrArr[idx].fileName[0] = '\0';
     }
     num_of_files = count;
 

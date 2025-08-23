@@ -28,7 +28,7 @@ extern unsigned int mul(unsigned int a, unsigned int b);
 
 struct fileManager{
     char fileName[11]; // file name
-    char filestatus; // s - script, t - text, e - empty
+    char fileStatus; // s - script, t - text, e - empty
     char* filepointer; // pointer to file
     unsigned int fileSize;
 } fileManager;

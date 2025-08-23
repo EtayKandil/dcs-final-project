@@ -432,8 +432,8 @@ void delete_all_files(){
 
         ScriptPtrArr[i].filepointer = 0;
         ScriptPtrArr[i].fileSize = 0;
-        ScriptPtrArr[i].filestatus = 'e';
-        ScriptPtrArr[i].fileName = 0;  // or NULL
+        ScriptPtrArr[i].fileStatus = 'e';
+        ScriptPtrArr[i].fileName[0] = '\0';  // or NULL
     }
     num_of_files = 0;
 }

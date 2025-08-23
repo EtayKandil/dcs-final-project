@@ -388,7 +388,7 @@ int FreeContentSpot(){
 int FreeNameSpot(){
     int i;
     for(i = 0; i < 10; i++){
-        if(ScriptPtrArr[i].filestatus != 'e'){
+        if(ScriptPtrArr[i].fileStatus != 'e'){
             return i;
         }
     }
@@ -444,7 +444,6 @@ void loadNameToMem(){  // load all script (input ,until input_slot-1 ,into memLo
     }
     FCTL1 = FWKEY;                                                  // Clear WRT bit
     FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
-    ScriptPtrArr[idx].fileName = (char *) (0x1000 + MetaDataSize*idx);
     
 }
 
@@ -783,7 +782,7 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
             }
               if(Status_name_data == 0){
                 Status_name_data = 1;
-                ScriptPtrArr[idx].filestatus = input[0];
+                ScriptPtrArr[idx].fileStatus = input[0];
               }
               else if(Status_name_data == 1){
                 Status_name_data = 2;

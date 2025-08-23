@@ -11,11 +11,13 @@ rad = [0 for x in range(120)]
 angle = [0 for x in range(120)]
 state = '0'
 sent_files = [] # To store info about sent files
+pending_file_meta = None  # will hold {'type': 'script'|'text', 'name': str, 'slot': int}
 
 
 
 
 def main():
+    global pending_file_meta
     event = "first time"
     start_dot = [0, 0]
     end_dot = [0, 0]
@@ -159,10 +161,20 @@ def main():
 
             elif event == "Load File":
                 lineByte = s.read_until(size=3)
-                if "xx" in lineByte.decode("ascii"):
-                    print(f"script has loaded to slot {lineByte.decode('ascii')[-1]}")
+                decoded = lineByte.decode("ascii")
+                if "xx" in decoded:
+                    slot_char = decoded[-1]
+                    print(f"file has loaded to slot {slot_char}")
+                    try:
+                        slot_num = int(slot_char)
+                        if pending_file_meta is not None:
+                            pending_file_meta['slot'] = slot_num
+                            sent_files.append(pending_file_meta)
+                    finally:
+                        pending_file_meta = None
                 else:
                     print("something went wrong send again :( ")
+                    pending_file_meta = None
                 event = "first time"
                 enableTX = True
         # TX
@@ -180,19 +192,24 @@ def main():
             bytetxMsg = bytes(state + '\n', 'ascii')
             if state == '8':
                 try:
-                    script_num_to_play = int(val['ScriptNum'])
-                    if not (1 <= script_num_to_play <= len(sent_files)):
-                        sg.popup_error(f"Invalid script number. Please enter a number between 1 and {len(sent_files)}.")
+                    wanted_slot = int(val['ScriptNum'])
+                    if not (1 <= wanted_slot <= 10):
+                        sg.popup_error("Invalid slot. Please enter a number between 1 and 10.")
                         event = "first time"
                         continue
 
-                    if sent_files[script_num_to_play - 1]['type'] == 'text':
-                        sg.popup_error("The selected file is a text file, not a script. Cannot play.")
+                    match = next((f for f in sent_files if f.get('slot') == wanted_slot), None)
+                    if match is None:
+                        sg.popup_error("No file in that slot.")
+                        event = "first time"
+                        continue
+                    if match.get('type') != 'script':
+                        sg.popup_error("That slot contains a text file. Cannot play.")
                         event = "first time"
                         continue
 
-                except (ValueError, IndexError):
-                    sg.popup_error("Invalid input. Please enter a valid script number.")
+                except ValueError:
+                    sg.popup_error("Invalid input. Please enter a valid slot number.")
                     event = "first time"
                     continue
 
@@ -239,11 +256,6 @@ def main():
                 s.write(bytes(file_type_code + '\n', 'ascii'))
                 time.sleep(0.25)
 
-                # Send slot number
-                slot_num = len(sent_files) + 1
-                s.write(bytes(str(slot_num) + '\n', 'ascii'))
-                time.sleep(0.25)
-
                 # Send file header (name)
                 s.write(bytes(file_name + '\n', 'ascii'))
                 time.sleep(0.25)
@@ -259,8 +271,8 @@ def main():
                 s.write(bytetxVal)
                 time.sleep(0.25)
 
-                sent_files.append({'type': file_type, 'name': file_name})
-                print(f"File '{file_name}' ({file_type}) sent to slot {slot_num}.")
+                pending_file_meta = {'type': file_type, 'name': file_name}
+                print(f"File '{file_name}' ({file_type}) sent; waiting for MCU slot assignment…")
 
                 if s.out_waiting == 0:
                     enableTX = False

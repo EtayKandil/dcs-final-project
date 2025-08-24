@@ -359,12 +359,14 @@ void setMask(){
 void loadScript(){
     enterLPM(0);
     enterLPM(0);
+    enterLPM(0);
     loadInToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)
     timerA0On(15);
     TX_to_send[0] = 'x';
     TX_to_send[1] = 'x';
-    TX_to_send[2] = '0'+ memLoad;
+    TX_to_send[2] = '0'+ num_of_files;
     enable_send_to_pc();
+    state = state0;
     memLoad = 0;
 }
 //---------------------------------------------------------------------
@@ -372,12 +374,19 @@ void loadScript(){
 //---------------------------------------------------------------------
 void playScript(){
     enterLPM(0);
-    char *Flash_ptr = (char *) 0xF600 + mul(memLoad -1, 512);                    // Segment C pointer
-    unsigned int i=0,x,comand = 1;
+    unsigned int size_sum = 0;
+    unsigned int i;
+    char *Flash_ptr;
+    for ( i = 0; i < memLoad; i++)
+        size_sum = size_sum + *((unsigned int *) (0x100E + MetaDataSize * i));
+
+    Flash_ptr = (char *) FileStarting + size_sum;
+    unsigned int x,command = 1;
+    i = 0;
     x = *Flash_ptr;
     if((x<1) || (8<x))
-        comand = 0;
-    while(i < 10 && comand){
+        command = 0;
+    while(i < 10 && command){
         switch(*Flash_ptr++){
             unsigned int tmp = Flash_ptr;
 
@@ -406,10 +415,10 @@ void playScript(){
             case 8:
                 sendEndSigScriptToPC();
                 state = state0;
-                comand = 0;
+                command = 0;
                 break;
             default:
-                comand = 0;
+                command = 0;
                 state = state0;
                 sendEndSigScriptToPC();
                 break;

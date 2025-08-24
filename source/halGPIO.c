@@ -497,12 +497,10 @@ void loadInToMem(){  // load all script (input ,until input_slot-1 ,into memLoad
     char *Flash_ptr;                                                // Flash pointer
     unsigned int i;
     unsigned int size_sum = 0;
-    unsigned int size = 0;
     for ( i = 0; i < num_of_files; i++)
         size_sum = size_sum + *((unsigned int *) (0x100E + MetaDataSize * i));
 
     Flash_ptr = (char *) FileStarting + size_sum;                             // Initialize Flash pointer
-    size = 0;
     FCTL1 = FWKEY ;                                          // Set Erase bit
     FCTL3 = FWKEY;                                                  // Clear Lock bit
     *Flash_ptr = 0;                                                 // Dummy write to erase Flash segment
@@ -535,7 +533,6 @@ void loadInToMem(){  // load all script (input ,until input_slot-1 ,into memLoad
     FCTL1 = FWKEY;                                                  // Clear WRT bit
     FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit 
 
-    loadNameToMem();
     loadMetadataToMem(indexfile / 2, Flash_ptr);
     num_of_files++;
 }
@@ -551,29 +548,14 @@ void loadNameToMem(){  // load all script (input ,until input_slot-1 ,into memLo
     FCTL3 = FWKEY;                                                  // Clear Lock bit
     *name_ptr = 0;                                                 // Dummy write to erase Flash segment
     FCTL1 = FWKEY + WRT;                                            // Set WRT bit for write operation
-    for (i=0; i < 19; i = i+2){                            // Write value to flash
+    for (i=0; i < 10; i++){                            // Write value to flash
         if (name_ptr >= 0x10BE){
             lcd_puts("No room for name");
             DelayMs(1000);
             lcd_clear();
             break;
         }
-        if(input[i] < 58){
-            unsigned int big = input[i] - '0';
-            big<<=4;
-            if(input[i+1] < 58)
-                *name_ptr++ = big + input[i+1] - '0';
-            else
-                *name_ptr++ = big + input[i+1] - 'a' + 10;
-        }
-        else{
-            unsigned int big = input[i] - 'a' + 10;
-            big<<=4;
-            if(input[i+1] < 58)
-                *name_ptr++ = big + input[i+1] - '0';
-            else
-                *name_ptr++ = big + input[i+1] - 'a' + 10;
-        }
+        *name_ptr++ = input[i];
     }
 
     FCTL1 = FWKEY;                                                  // Clear WRT bit
@@ -591,8 +573,8 @@ void loadMetadataToMem(unsigned int size, char* Flash_ptr){  // load all script 
     unsigned int* size_ptr = (unsigned int *) (0x100E + MetaDataSize*num_of_files);
     *size_ptr = size;
 
-    char* status_ptr = (char *) (0x100A + MetaDataSize*num_of_files);
-    *status_ptr = 's';
+    // char* status_ptr = (char *) (0x100A + MetaDataSize*num_of_files);
+    // *status_ptr = 's';
 
     FCTL1 = FWKEY;                                                  // Clear WRT bit
     FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit 
@@ -645,8 +627,8 @@ void printLcdBottom(char *toPrint, unsigned int n){
 	if(PBsArrIntPend & PB0){
 		PBsArrIntPend &= ~PB0;
         lcd_clear();
-        printLcdTop((0x1000 + MetaDataSize*LCD_roll),10);
-        printLcdBottom((0x1000 + MetaDataSize*((LCD_roll + 1) % (num_of_files))),10);
+        printLcdTop((char*)(0x1000 + MetaDataSize*LCD_roll),10);
+        printLcdBottom((char*)(0x1000 + MetaDataSize*((LCD_roll + 1) % (num_of_files))),10);
         LCD_roll ++;
         if(LCD_roll > (num_of_files - 1))
             LCD_roll = 0;
@@ -843,40 +825,44 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
       else{
           if(state == state6){
               maskDist = atoi(input);
+              state_or_num = 1;
           }
           else if(state == state2 ||state == state10){
               loc_angel = atoi(input);
+              state_or_num = 1;
           }
           else if(state == state5){
 
-            //   if(Status_name_data == 0){
-            //     Status_name_data = 1;
-            //     FCTL1 = FWKEY + ERASE;                                          // Set Erase bit
-            //     FCTL3 = FWKEY;                                                  // Clear Lock bit
-            //     FCTL1 = FWKEY + WRT;
+              if(Status_name_data == 0){
+                Status_name_data = 1;
+                FCTL1 = FWKEY + ERASE;                                          // Set Erase bit
+                FCTL3 = FWKEY;                                                  // Clear Lock bit
+                FCTL1 = FWKEY + WRT;
 
-            //     *((char *) (0x100B + MetaDataSize*num_of_files)) = input[0];
+                *((char *) (0x100A + MetaDataSize*num_of_files)) = input[0];
 
-            //     FCTL1 = FWKEY;                                                  // Clear WRT bit
-            //     FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
-            //   }
-            //   else if(Status_name_data == 1){
-            //     Status_name_data = 2;
-            //     loadNameToMem();
-            //   }
+                FCTL1 = FWKEY;                                                  // Clear WRT bit
+                FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
+              }
+              else if(Status_name_data == 1){
+                Status_name_data = 2;
+                loadNameToMem();
+                
+              }
 
-            //   else if (Status_name_data == 2 && !memLoad){
-            //     memLoad = atoi(input);
-            //     Status_name_data = 0;
-            //   }
+              else if (Status_name_data == 2){
+                Status_name_data = 0;
+                state_or_num = 1;
+              }
               
-              if(!memLoad)
-                  memLoad = atoi(input);
           }
           else if(state == state8){
               memLoad = atoi(input);
+              state_or_num = 1;
           }
-          state_or_num = 1;
+          else
+              state_or_num = 1;
+          
           
       }
 

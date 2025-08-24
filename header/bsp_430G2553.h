@@ -48,7 +48,7 @@
 #define PBsArrPortSel      P2SEL 
 #define PBsArrPortDir      P2DIR 
 #define PB0                0x01
-#define PB1                0x20
+#define PB1                0x80
 #define PB2                0x40
 #define PB3                0x80
 

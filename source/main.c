@@ -40,14 +40,11 @@ enum SYSmode lpm_mode;
       case state4:
           servo_sweep(0,180);
           state = state0;
-
 		  break;
 
       case state5:
-          PBsArrIntEn |= 0x81;
           loadScript();
           state = state0;
-          PBsArrIntEn &= ~0x81;
           break;
 
       case state6:
@@ -57,10 +54,13 @@ enum SYSmode lpm_mode;
 
       case state7:
           LDRconfig();
+//          while(1){
+//              readLDRs();
+//          }
           state = state0;
           break;
       case state8:
-          playScript();
+           playScript();
           break;
 	}
   }

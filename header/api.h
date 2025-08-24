@@ -5,6 +5,7 @@
 
 extern char counterToPrint[5];
 
+
 extern void timerA0On(int delay);
 
 extern void servo_sweep(unsigned int l, unsigned int r);

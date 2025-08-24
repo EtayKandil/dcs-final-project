@@ -4,6 +4,12 @@ import serial as ser
 import time
 import helper_functions as hf
 
+# Debug toggle
+DEBUG = True
+def dbg(*a):
+    if DEBUG:
+        print("[DBG]", *a)
+
 
 # globals:
 color = [0 for x in range(120)]
@@ -162,6 +168,7 @@ def main():
             elif event == "Load File":
                 lineByte = s.read_until(size=3)
                 decoded = lineByte.decode("ascii")
+                dbg("ACK raw:", lineByte, "decoded:", repr(decoded), "len:", len(decoded))
                 if "xx" in decoded:
                     slot_char = decoded[-1]
                     print(f"file has loaded to slot {slot_char}")
@@ -253,11 +260,14 @@ def main():
 
                 # Send file type
                 file_type_code = '1' if file_type == 'script' else '2'
-                s.write(bytes(file_type_code + '\n', 'ascii'))
+                dbg("type:", file_type, "code:", file_type_code, "name:", file_name)
+                n = s.write(bytes(file_type_code + '\n', 'ascii'))
+                dbg("wrote type bytes:", n)
                 time.sleep(0.25)
 
                 # Send file header (name)
-                s.write(bytes(file_name + '\n', 'ascii'))
+                n = s.write(bytes(file_name + '\n', 'ascii'))
+                dbg("wrote name bytes:", n, "name len:", len(file_name))
                 time.sleep(0.25)
 
                 file_content = hf.openFile(file_path)
@@ -266,9 +276,16 @@ def main():
                 else:
                     content_to_send = file_content
 
+                dbg("content len:", len(content_to_send))
+                dbg("content head:", repr(content_to_send[:80]))
+                dbg("content tail:", repr(content_to_send[-80:]))
+                if file_type == "script" and (len(content_to_send) % 2):
+                    dbg("WARNING: odd hex length for script content")
+
                 # Send file content
                 bytetxVal = bytes(content_to_send + '\n', 'ascii')
-                s.write(bytetxVal)
+                n = s.write(bytetxVal)
+                dbg("wrote content bytes:", n)
                 time.sleep(0.25)
 
                 pending_file_meta = {'type': file_type, 'name': file_name}

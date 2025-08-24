@@ -9,6 +9,9 @@ unsigned int lightToDist[2][10] = {{600,650,692,734,776,818,860,902,950,1023},
 int delayS = 500;
 
 
+
+
+
 //---------------------------------------------------------------------
 //            LDR config
 //---------------------------------------------------------------------
@@ -20,6 +23,14 @@ void LDRconfig(){
     servo_Tolocation(90,750);
     for(i = 0; i < 10; i++){
         lcd_puts("move flashlight");
+        lcd_new_line;
+        lcd_puts("scan in 5 sec");
+        timerA0On(1000);
+        lcd_home();
+        lcd_new_line;
+        lcd_puts("scan in 4 sec");
+        timerA0On(1000);
+        lcd_home();
         lcd_new_line;
         lcd_puts("scan in 3 sec");
         timerA0On(1000);
@@ -112,7 +123,6 @@ void servo_sweep(unsigned int l, unsigned int r){ //l<r
     while(i<90 && i <= max){
         int loc = i<<1;
         servo_Tolocation(loc,250);
-        
         switch(state){
             case state1:
                 tmp = ultrasonic_measure();
@@ -130,8 +140,7 @@ void servo_sweep(unsigned int l, unsigned int r){ //l<r
                     objectDist[1][i]= tmp;
                 if(tmp > 0 ){
                     sendToPC(i);                    //send angle
- //                   sendToPC(ultrasonic_measure()); //send val
-                    sendToPC(tmp);
+                    sendToPC(ultrasonic_measure()); //send val
                     sendToPC(1);                    //measure = 0 / light = 1
                 }
                 break;
@@ -144,8 +153,7 @@ void servo_sweep(unsigned int l, unsigned int r){ //l<r
                 }
                 if(tmp2 > 0){
                     sendToPC(i);                    //send angle
-//                    sendToPC(tmp);                  //send val
-                    sendToPC(tmp2);                  //send val
+                    sendToPC(tmp);                  //send val
                     sendToPC(1);                    //measure = 0 / light = 1
                 }
                 else if( tmp <= maskDist ){
@@ -171,27 +179,19 @@ void servo_sweep(unsigned int l, unsigned int r){ //l<r
     sendEndSigToPC();
 
 }
-
-
 //---------------------------------------------------------------------
 //            reset servo
 //---------------------------------------------------------------------
 void servo_Tozero(){
-    // enable_TimerA1_servo();
-    // TA1CCR2 = startServoVal;
-    // timerA0On(750);
-    // disable_TimerA1_servo();
-    // enable_TimerA1_servo();
-    // TA1CCR2 = startServoVal;
-    // timerA0On(750);
-    // disable_TimerA1_servo();
-
     enable_TimerA1_servo();
     TA1CCR2 = startServoVal;
     timerA0On(750);
+    disable_TimerA1_servo();
+    enable_TimerA1_servo();
+    TA1CCR2 = startServoVal;
+    timerA0On(750);
+    disable_TimerA1_servo();
 }
-
-
 //---------------------------------------------------------------------
 //             servo to location
 //---------------------------------------------------------------------
@@ -206,39 +206,33 @@ void servo_Tolocation(int loc, int sleep){
     }else {
         num = 60+ diveide(loc<<1,3);
     }
-
-    // int i;
-    // for (i = 0; i < 4; i++){
-    //     enable_TimerA1_servo();
-    //     TA1CCR2 = num;
-    //     timerA0On(sleep);
-    //     disable_TimerA1_servo();
-    // }
-
     enable_TimerA1_servo();
     TA1CCR2 = num;
-    timerA0On(sleep);        // give time to reach position
-    // Do NOT disable here; keep PWM on to hold angle.
-
+    timerA0On(sleep);
+    disable_TimerA1_servo();
+    enable_TimerA1_servo();
+    TA1CCR2 = num;
+    timerA0On(sleep);
+    disable_TimerA1_servo();
 }
 //---------------------------------------------------------------------
 //            ultrasonic measure
 //---------------------------------------------------------------------
 unsigned int ultrasonic_measure(){
     unsigned int to_return = 0;
-    int k = 0;
+    int k =0;
     enable_Timer_ultrasonic();
 
     while(k < 4){
         int i = 0;
         unsigned int count = 0;
-        while(i < 4){
-            count += dist;
+        while(i<4){
+            count +=dist;
             if(dist!=0)
                 i++;
         }
-        count = count >> 5;
-        unsigned int temp = count >> 3;
+        count = count>>5;
+        unsigned int temp = count >>3;
         temp += 4;
         to_return = to_return + count + temp;
         k++;
@@ -325,27 +319,58 @@ void setMask(){
     enterLPM(0);
 }
 //---------------------------------------------------------------------
-//            load name into flash
+//            load script into flash
 //---------------------------------------------------------------------
-void loadName(){
-    enterLPM(0);
-    enterLPM(0);
-    loadNameToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)
-    timerA0On(15);
-    TX_to_send[0] = 'x';
-    TX_to_send[1] = 'x';
-    TX_to_send[2] = '0'+ memLoad;
-    enable_send_to_pc();
-    memLoad = 0;
-}
+void loadScript(){    // Expect ISR to have staged type and name already.
+    enterLPM(0); // wait for content line
 
-//---------------------------------------------------------------------
-//            load data into flash
-//---------------------------------------------------------------------
-void loadData(){
-    enterLPM(0);
-    enterLPM(0);
-    loadDataToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)
+    unsigned int idx = (memLoad > 0) ? (memLoad - 1) : 0;
+    char *meta_type = meta_status_ptr(idx);   // using status offset as type byte
+    char *name_ptr = meta_name_ptr(idx);
+    unsigned int *size_ptr = meta_size_ptr(idx);
+
+    // Compute data segment base for this slot
+    char *seg_base = (char *)(FILE_DATA_BASE + (idx * 512));
+
+    // Erase segment
+    FCTL3 = FWKEY;           // unlock
+    FCTL1 = FWKEY + ERASE;   // erase mode
+    *seg_base = 0;           // dummy write
+    FCTL1 = FWKEY;           // clear WRT
+    FCTL3 = FWKEY + LOCK;    // relock
+
+    // Program content
+    unsigned int written = 0;
+    unsigned int maxBytes = 512;
+    FCTL3 = FWKEY; FCTL1 = FWKEY + WRT;
+    if(*meta_type == '1'){
+        // script: input[] holds hex pairs; decode
+        unsigned int i = 0;
+        while(i + 1 < (unsigned int)indexfile && written < maxBytes){
+            char c1 = input[i]; if(c1=='k' || c1=='\0' || c1=='\n') break;
+            char c2 = input[i+1];
+            unsigned char v1 = (c1 <= '9') ? (c1 - '0') : (c1 - 'a' + 10);
+            unsigned char v2 = (c2 <= '9') ? (c2 - '0') : (c2 - 'a' + 10);
+            seg_base[written++] = (char)((v1 << 4) | (v2 & 0x0F));
+            i += 2;
+        }
+    } else {
+        // text: raw bytes
+        unsigned int i = 0;
+        while(i < (unsigned int)indexfile && written < maxBytes){
+            char c = input[i++];
+            if(c=='k' || c=='\0' || c=='\n') break;
+            seg_base[written++] = c;
+        }
+    }
+    FCTL1 = FWKEY; FCTL3 = FWKEY + LOCK;
+
+    // Store size in metadata
+    FCTL3 = FWKEY; FCTL1 = FWKEY + WRT;
+    *size_ptr = written;
+    FCTL1 = FWKEY; FCTL3 = FWKEY + LOCK;
+
+    // ACK
     timerA0On(15);
     TX_to_send[0] = 'x';
     TX_to_send[1] = 'x';
@@ -404,40 +429,6 @@ void playScript(){
     }
     memLoad = 0;
 }
-
-//---------------------------------------------------------------------
-//            delete all files from Flash
-//---------------------------------------------------------------------
-void delete_all_files(){
-    // char* Flash_data_ptr = (char*) 0xF600;
-    // char* Flash_metadata_ptr = (char*) 0x1000;
-
-    // while(Flash_data_ptr < FileEnding){
-    //     FCTL1 = FWKEY + ERASE;
-    //     FCTL3 = FWKEY;
-    //     FCTL1 = FWKEY + WRT;
-    //     if (Flash_metadata_ptr < TheForbiddenSegment)
-    //         *Flash_metadata_ptr++ = '\0';
-
-    //     *Flash_data_ptr++ = '\0';
-    // }
-
-    // FCTL1 = FWKEY;                                                  // Clear WRT bit
-    // FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
-
-    unsigned int i;
-    for ( i = 0; i < 10; i++){
-        char* status_ptr = (char *) (0x1011 + MetaDataSize*i);
-        *status_ptr = 'e';
-
-        ScriptPtrArr[i].filepointer = 0;
-        ScriptPtrArr[i].fileSize = 0;
-        ScriptPtrArr[i].fileStatus = 'e';
-        ScriptPtrArr[i].fileName[0] = '\0';  // or NULL
-    }
-    num_of_files = 0;
-}
-
 //---------------------------------------------------------------------
 //            inc lcd up to x
 //---------------------------------------------------------------------
@@ -486,9 +477,9 @@ void rra_lcd(char x){
     while(index < 32){
         if(index == 16)
             lcd_new_line;
-        lcd_clear();
-        lcd_data(x);
-        timerA0On(delay);
+    lcd_clear();
+    lcd_data(x);
+    timerA0On(delayS);
         index++;
     }
 }
@@ -498,6 +489,4 @@ void rra_lcd(char x){
 void set_delay_d(int d){
     delayS = mul(d ,10);
 }
-
-
 

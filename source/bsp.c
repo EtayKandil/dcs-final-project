@@ -1,20 +1,7 @@
 #include  "../header/bsp_430G2553.h"
-#include  "../header/halGPIO.h"
-
-struct fileManager ScriptPtrArr[10] = {{{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0},
-                            {{0}, 'e', 0, 0}};
-unsigned int num_of_files = 0;
 
 //-----------------------------------------------------------------------------  
-//           GPIO configuration
+//           GPIO congiguration
 //-----------------------------------------------------------------------------
 void GPIOconfig(void){
  // volatile unsigned int i; // in case of while loop usage
@@ -29,14 +16,13 @@ void GPIOconfig(void){
   BCSCTL1 = CALBC1_1MHZ;                    // Set DCO
   DCOCTL = CALDCO_1MHZ;
   FCTL2 = FWKEY + FSSEL0+ FN1;              // MCLK/3 for Flash timing gen
-
-
-    // PushButtons Setup
-  PBsArrPortSel &= ~0x81;
-  PBsArrPortDir &= ~0x81;
-  PBsArrIntEn &= ~0x81;              // enable interrupts on PB0 and PB3
-  PBsArrIntEdgeSel |= 0x81;  	     // pull-up mode
-  PBsArrIntPend &= ~0xFF;            // clear pending interrupts
+  /*
+  // PushButtons Setup
+  PBsArrPortSel &= ~0x01;
+  PBsArrPortDir &= ~0x01;
+  PBsArrIntEdgeSel |= 0x01;  	     // pull-up mode
+  PBsArrIntPend &= ~0x01;            // clear pending interrupts
+  */
 
   
   //SERVO
@@ -46,10 +32,9 @@ void GPIOconfig(void){
 
   //ultrasonic
   ultrasonicSEL        |= BIT2 + BIT6;
-//   ultrasonicSEL        &= ~BIT7;
-//   ultrasonicSEL2       &= ~(BIT6 +BIT7);
-  ultrasonicSEL2       &= ~BIT6;
-  ultrasonicOUT        &= ~BIT6;
+  ultrasonicSEL        &= ~BIT7;
+  ultrasonicSEL2       &= ~(BIT6 +BIT7);
+  ultrasonicOUT        &= ~(BIT6);
   ultrasonicDIR        |= BIT6;
   ultrasonicDIR        &= ~BIT2;
   ultrasonicIN         |= BIT2;
@@ -83,7 +68,7 @@ void TIMERconfig(void){
     TA1CCR0 = twentyFivemsec;                // value of 25 msec
 } 
 //------------------------------------------------------------------------------------- 
-//            ADC configuration
+//            ADC congiguration 
 //-------------------------------------------------------------------------------------
 void ADCconfig(void){
 	
@@ -92,7 +77,7 @@ void ADCconfig(void){
 }              
 
 //-------------------------------------------------------------------------------------
-//            UART configuration
+//            UART congiguration
 //-------------------------------------------------------------------------------------
 void UARTconfig(void){
     UARTArrPortSel       |= BIT1 + BIT2;
@@ -114,52 +99,54 @@ void UARTconfig(void){
 }
              
              
-//-------------------------------------------------------------------------------------
-//            File mode configuration
-//-------------------------------------------------------------------------------------
-void FileModeConfig(void){
-    int count = -1;
-    int idx = 0;
+            
+  
 
-    while(count < 10)
-    {
-        count++;
-        char* status_ptr = (char *) (0x1011 + MetaDataSize*count);
-        if(*status_ptr != 's' || *status_ptr != 't'){
-            break;
-        }
-        
-    }
-
-    while(idx <= count){
-        ScriptPtrArr[idx].filepointer = (char *) (0xF600 + MetaDataSize*idx);
-        ScriptPtrArr[idx].fileSize = (unsigned int *) (0x1014 + MetaDataSize*idx);
-        ScriptPtrArr[idx].fileStatus = (char *) (0x1011 + MetaDataSize*idx);
-        NameFlashToRam(idx);
-        idx++;
-    }
-
-    while (idx < 10){
-        ScriptPtrArr[idx].filepointer = 0;
-        ScriptPtrArr[idx].fileSize = 0;
-        ScriptPtrArr[idx].fileStatus = 'e';
-        ScriptPtrArr[idx].fileName[0] = '\0';
-    }
-    num_of_files = count;
-
+// ---------------- Metadata address calculators ----------------
+char *meta_name_ptr(unsigned int idx){
+    return (char *)(METADATA_BASE + (idx * METADATA_ENTRY_SIZE) + META_OFF_NAME);
+}
+char *meta_status_ptr(unsigned int idx){
+    return (char *)(METADATA_BASE + (idx * METADATA_ENTRY_SIZE) + META_OFF_STATUS);
+}
+char **meta_data_ptr_ptr(unsigned int idx){
+    return (char **)(METADATA_BASE + (idx * METADATA_ENTRY_SIZE) + META_OFF_DATAPTR);
+}
+unsigned int *meta_size_ptr(unsigned int idx){
+    return (unsigned int *)(METADATA_BASE + (idx * METADATA_ENTRY_SIZE) + META_OFF_SIZE);
 }
 
-void NameFlashToRam(int idx){
-    int i;
-    if (ScriptPtrArr[idx].fileStatus == 's' || ScriptPtrArr[idx].fileStatus == 't'){
-        char* flash_ptr = (char *) (0x1000 + (idx * MetaDataSize));
-                
-        for (i = 0; i < 10; i++)
-            ScriptPtrArr[idx].fileName[i] = flash_ptr[i];
-        
-        ScriptPtrArr[idx].fileName[10] = '\0';
-    }
-        
-        
-    
+// ---------------- Metadata getters (reads) ----------------
+char meta_get_status(unsigned int idx){
+    return *meta_status_ptr(idx);
 }
+unsigned int meta_get_size(unsigned int idx){
+    return *meta_size_ptr(idx);
+}
+char *meta_get_data_ptr(unsigned int idx){
+    return *meta_data_ptr_ptr(idx);
+}
+void meta_get_name(unsigned int idx, char out[11]){
+    char *p = meta_name_ptr(idx);
+    unsigned int i;
+    for(i=0;i<META_NAME_LEN;i++) out[i] = p[i];
+    out[META_NAME_LEN] = '\0';
+}
+
+// ---------------- Data offset computations ----------------
+unsigned int meta_compute_data_offset_until(unsigned int idx){
+    unsigned int i;
+    unsigned int total = 0;
+    for(i = 0; i < idx && i < METADATA_MAX_FILES; i++){
+        total += meta_get_size(i);
+    }
+    return total;
+}
+char *meta_compute_data_write_ptr(unsigned int idx){
+    return (char *)(FILE_DATA_BASE + meta_compute_data_offset_until(idx));
+}
+
+
+
+
+

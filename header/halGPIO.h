@@ -6,8 +6,6 @@
 #include  "../header/app.h"    		                // private library - APP layer
 #include  <stdlib.h>
 
-
-
 extern enum FSMstate state;   // global variable
 extern enum SYSmode lpm_mode; // global variable
 
@@ -20,21 +18,12 @@ extern int maskDist;
 extern int state_or_num;
 extern unsigned int memLoad;
 extern int input_slot;
-extern unsigned int first_time;
+extern char input[61];      // UART line buffer filled in RX ISR
+extern int indexfile;       // current line length filled in RX ISR
 
 extern unsigned int modulo(unsigned int a, unsigned int b);
 extern unsigned int diveide(unsigned int a, unsigned int b);
 extern unsigned int mul(unsigned int a, unsigned int b);
-
-struct fileManager{
-    char fileName[11]; // file name
-    char fileStatus; // s - script, t - text, e - empty
-    char* filepointer; // pointer to file
-    unsigned int fileSize;
-} fileManager;
-
-extern unsigned int LCD_roll; // global variable for LCD roll
-extern struct fileManager ScriptPtrArr[10]; // array of fileManager
 
 extern void sysConfig(void);
 extern void delay(unsigned int);
@@ -58,7 +47,7 @@ extern void disable_TimerA0();
 extern void enable_send_to_pc();
 
 extern void enable_ADC10LDR1();
-extern void enable_ADC10LDR1();
+extern void enable_ADC10LDR2();
 extern unsigned int scanLDR1();
 extern unsigned int scanLDR2();
 

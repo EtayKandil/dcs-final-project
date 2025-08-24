@@ -423,42 +423,37 @@ void playScript(){
 //            delete all files from Flash
 //---------------------------------------------------------------------
 void delete_all_files(){
-    // char* Flash_data_ptr = (char*) 0xF600;
-    // char* Flash_metadata_ptr = (char*) 0x1000;
 
-    // while(Flash_data_ptr < FileEnding){
-    //     FCTL1 = FWKEY + ERASE;
-    //     FCTL3 = FWKEY;
-    //     FCTL1 = FWKEY + WRT;
-    //     if (Flash_metadata_ptr < TheForbiddenSegment)
-    //         *Flash_metadata_ptr++ = '\0';
-
-    //     *Flash_data_ptr++ = '\0';
-    // }
-
-    // FCTL1 = FWKEY;                                                  // Clear WRT bit
-    // FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
-
-    FCTL1 = FWKEY + ERASE;                                          // Set Erase bit
-    FCTL3 = FWKEY;                                                  // Clear Lock bit
-    FCTL1 = FWKEY + WRT;                                            // Set WRT bit for write operation
-
-    unsigned int i;
-    for ( i = 0; i < 3; i++){
-        char* status_ptr = (char *) (0x1000 + 64);
-        *status_ptr = 0;
-    }
-
-    for ( i = 0; i < 3; i++){
-        char* status_ptr = (char *) (FileStarting + 512);
-        *status_ptr = 0;
-    }
-
-    FCTL1 = FWKEY;                                                  // Clear WRT bit
-    FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
+    wipe_info_DCB();
+    erase_segments_4_3_2_1();
     num_of_files = 0;
 }
 
+static void erase_seg(volatile unsigned char *base){
+    FCTL1 = FWKEY | ERASE;             // segment erase
+    *base = 0;                         // dummy write starts erase
+    while (FCTL3 & BUSY) ;             // wait end of erase
+}
+
+void wipe_info_DCB(void){
+    FCTL3 = FWKEY;                     // unlock (LOCK=0)
+
+    erase_seg((volatile unsigned char*)0x1000); // D
+    erase_seg((volatile unsigned char*)0x1040); // C
+    erase_seg((volatile unsigned char*)0x1080); // B
+
+    FCTL3 = FWKEY | LOCK;              // relock
+}
+
+void erase_segments_4_3_2_1(void){
+
+    FCTL3 = FWKEY;                  // unlock
+    erase_seg(0xF600);
+    erase_seg(0xF800);
+    erase_seg(0xFA00);
+    erase_seg(0xFC00);
+    FCTL3 = FWKEY | LOCK;           // relock
+}
 //---------------------------------------------------------------------
 //            inc lcd up to x
 //---------------------------------------------------------------------

@@ -28,7 +28,8 @@ void GPIOconfig(void){
   DCOCTL = 0;                               // Select lowest DCOx and MODx settings
   BCSCTL1 = CALBC1_1MHZ;                    // Set DCO
   DCOCTL = CALDCO_1MHZ;
-  FCTL2 = FWKEY + FSSEL0+ FN1;              // MCLK/3 for Flash timing gen
+//   FCTL2 = FWKEY + FSSEL0 + FN1;              // MCLK/3 for Flash timing gen
+    FCTL2 = FWKEY + FSSEL_2 + FN1;
 
 
     // PushButtons Setup
@@ -118,46 +119,21 @@ void UARTconfig(void){
 //            File mode configuration
 //-------------------------------------------------------------------------------------
 void FileModeConfig(void){
-    int count = -1;
+    int count = 0;
     int idx = 0;
 
-    while(count < 10)
-    {
-        count++;
-        char* status_ptr = (char *) (0x1011 + MetaDataSize*count);
-        if(*status_ptr != 's' && *status_ptr != 't'){
-            break;
-        }
+    // while(count < 10)
+    // {
+    //     count++;
+    //     char* status_ptr = (char *) (0x100B + MetaDataSize*count);
+    //     if(*status_ptr != 's' && *status_ptr != 't'){
+    //         break;
+    //     }
         
-    }
-
-    // while(idx <= count){
-    //     ScriptPtrArr[idx].filepointer = (char *) (0xF600 + MetaDataSize*idx);
-    //     ScriptPtrArr[idx].fileSize = (unsigned int *) (0x1014 + MetaDataSize*idx);
-    //     ScriptPtrArr[idx].fileStatus = (char *) (0x1011 + MetaDataSize*idx);
-    //     NameFlashToRam(idx);
-    //     idx++;
     // }
 
-    // while (idx < 10){
-    //     ScriptPtrArr[idx].filepointer = 0;
-    //     ScriptPtrArr[idx].fileSize = 0;
-    //     ScriptPtrArr[idx].fileStatus = 'e';
-    //     ScriptPtrArr[idx].fileName[0] = '\0';
-    // }
+
     num_of_files = count;
 
 }
 
-// void NameFlashToRam(int idx){
-//     int i;
-//     if (ScriptPtrArr[idx].fileStatus == 's' || ScriptPtrArr[idx].fileStatus == 't'){
-//         char* flash_ptr = (char *) (0x1000 + (idx * MetaDataSize));
-                
-//         for (i = 0; i < 10; i++)
-//             ScriptPtrArr[idx].fileName[i] = flash_ptr[i];
-        
-//         ScriptPtrArr[idx].fileName[10] = '\0';
-//     }
-        
-// }

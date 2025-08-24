@@ -295,7 +295,7 @@ unsigned int readLDRs(){
     lcd_data(i+'0');
     lcd_puts("-");
     lcd_data(j+'0');
-//        //////////////////////////////////////////////
+////////////////////////////////////////////////
     timerA0On(500);
 
     if((i==j) &&(i != 9))
@@ -327,25 +327,39 @@ void setMask(){
 //---------------------------------------------------------------------
 //            load name into flash
 //---------------------------------------------------------------------
-void loadName(){
-    enterLPM(0);
-    enterLPM(0);
-    loadNameToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)
-    timerA0On(15);
-    TX_to_send[0] = 'x';
-    TX_to_send[1] = 'x';
-    TX_to_send[2] = '0'+ memLoad;
-    enable_send_to_pc();
-    memLoad = 0;
-}
+// void loadName(){
+//     enterLPM(0);
+//     enterLPM(0);
+//     loadNameToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)
+//     timerA0On(15);
+//     TX_to_send[0] = 'x';
+//     TX_to_send[1] = 'x';
+//     TX_to_send[2] = '0'+ memLoad;
+//     enable_send_to_pc();
+//     memLoad = 0;
+// }
 
+// //---------------------------------------------------------------------
+// //            load data into flash
+// //---------------------------------------------------------------------
+// void loadData(){
+//     enterLPM(0);
+//     enterLPM(0);
+//     loadDataToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)
+//     timerA0On(15);
+//     TX_to_send[0] = 'x';
+//     TX_to_send[1] = 'x';
+//     TX_to_send[2] = '0'+ memLoad;
+//     enable_send_to_pc();
+//     memLoad = 0;
+// }
 //---------------------------------------------------------------------
-//            load data into flash
+//            load script into flash
 //---------------------------------------------------------------------
-void loadData(){
+void loadScript(){
     enterLPM(0);
     enterLPM(0);
-    loadDataToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)
+    loadInToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)
     timerA0On(15);
     TX_to_send[0] = 'x';
     TX_to_send[1] = 'x';
@@ -358,7 +372,7 @@ void loadData(){
 //---------------------------------------------------------------------
 void playScript(){
     enterLPM(0);
-    char *Flash_ptr = (char *) 0x1000 + mul(memLoad -1, 64);                     // Segment C pointer
+    char *Flash_ptr = (char *) 0xF600 + mul(memLoad -1, 512);                    // Segment C pointer
     unsigned int i=0,x,comand = 1;
     x = *Flash_ptr;
     if((x<1) || (8<x))
@@ -425,16 +439,23 @@ void delete_all_files(){
     // FCTL1 = FWKEY;                                                  // Clear WRT bit
     // FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
 
-    unsigned int i;
-    for ( i = 0; i < 10; i++){
-        char* status_ptr = (char *) (0x1011 + MetaDataSize*i);
-        *status_ptr = 'e';
+    FCTL1 = FWKEY + ERASE;                                          // Set Erase bit
+    FCTL3 = FWKEY;                                                  // Clear Lock bit
+    FCTL1 = FWKEY + WRT;                                            // Set WRT bit for write operation
 
-        ScriptPtrArr[i].filepointer = 0;
-        ScriptPtrArr[i].fileSize = 0;
-        ScriptPtrArr[i].fileStatus = 'e';
-        ScriptPtrArr[i].fileName[0] = '\0';  // or NULL
+    unsigned int i;
+    for ( i = 0; i < 3; i++){
+        char* status_ptr = (char *) (0x1000 + 64);
+        *status_ptr = 0;
     }
+
+    for ( i = 0; i < 3; i++){
+        char* status_ptr = (char *) (FileStarting + 512);
+        *status_ptr = 0;
+    }
+
+    FCTL1 = FWKEY;                                                  // Clear WRT bit
+    FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
     num_of_files = 0;
 }
 

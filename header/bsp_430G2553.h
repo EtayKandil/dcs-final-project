@@ -13,7 +13,7 @@
 #define   Servo_step_size  13
 #define FileEnding 0xFDFF
 #define FileStarting 0xF600
-#define TheForbiddenSegment    0x10B0
+#define TheForbiddenSegment    0x10BE
 #define MetaDataSize        16
 
 // LDR abstraction

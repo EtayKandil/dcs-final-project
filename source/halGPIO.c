@@ -18,6 +18,8 @@ unsigned int LCD_roll = 0;
 int size_left = 0;
 unsigned int isScrolling = 0;
 unsigned int Status_name_data = 0;
+unsigned int memLoad = 0;
+unsigned int ptr_mov = 0;
 
 
 //--------------------------------------------------------------------
@@ -29,6 +31,7 @@ void sysConfig(void){
 	ADCconfig();
 	UARTconfig();
     FileModeConfig();
+
 }
 
 //******************************************************************
@@ -371,120 +374,145 @@ unsigned int modulo(unsigned int a, unsigned int b) {
     return a;
 }
 
-//---------------------------------------------------------------------
-//            checking for free spot for filemode
-//---------------------------------------------------------------------
+// //-----------------------------------------------------------------------------
+// //            loading file name onto flash
+// //-----------------------------------------------------------------------------
 
-int FreeContentSpot(){
-    int i;
-    for(i = 0; i < 10; i++){
-        if(ScriptPtrArr[i].filepointer == 0){
-            return i;
-        }
-    }
-    return -1;
-}
+// void loadNameToMem(){  // load all script (input ,until input_slot-1 ,into memLoad place)
 
-int FreeNameSpot(){
-    int i;
-    for(i = 0; i < 10; i++){
-        if(ScriptPtrArr[i].fileStatus != 'e'){
-            return i;
-        }
-    }
-    return -1;
-}
+//     char *Flash_ptr;                                                // Flash pointer
+//     unsigned int i;
+//     if( num_of_files == 10){
+//         lcd_puts("10 files loaded");
+//         delayMs(500);
+//         lcd_clear();
+//         return;
+//     }
 
-//-----------------------------------------------------------------------------
-//            loading file name onto flash
-//-----------------------------------------------------------------------------
-
-void loadNameToMem(){  // load all script (input ,until input_slot-1 ,into memLoad place)
-
-    char *Flash_ptr;                                                // Flash pointer
-    unsigned int i;
-    unsigned int idx = FreeNameSpot();
-    if( idx == -1){
-        lcd_puts("10 files loaded");
-        delayMs(500);
-        lcd_clear();
-        return;
-    }
-
-    Flash_ptr = (char *) (0x1000 + MetaDataSize*idx);              // Initialize Flash pointer
-    FCTL1 = FWKEY + ERASE;                                          // Set Erase bit
-    FCTL3 = FWKEY;                                                  // Clear Lock bit
-    *Flash_ptr = 0;                                                 // Dummy write to erase Flash segment
-    FCTL1 = FWKEY + WRT;                                            // Set WRT bit for write operation
-    for (i=0; i < indexfile-1; i = i+2){      
-        if (Flash_ptr >= TheForbiddenSegment){
-            lcd_puts("No room for name");
-            delayMs(1000);
-            lcd_clear();
-            return;
-        }
+//     Flash_ptr = (char *) (0x1000 + MetaDataSize*num_of_files);              // Initialize Flash pointer
+//     FCTL1 = FWKEY + ERASE;                                          // Set Erase bit
+//     FCTL3 = FWKEY;                                                  // Clear Lock bit
+//     *Flash_ptr = 0;                                                 // Dummy write to erase Flash segment
+//     FCTL1 = FWKEY + WRT;                                            // Set WRT bit for write operation
+//     for (i=0; i < indexfile-1; i = i+2){      
+//         if (Flash_ptr >= TheForbiddenSegment){
+//             lcd_puts("No room for name");
+//             delayMs(1000);
+//             lcd_clear();
+//             break;
+//         }
         
-        // Write value to flash
-        if(input[i] < 58){
-            char big = input[i];
-            big<<=4;
-            if(input[i+1] < 58)
-                *Flash_ptr++ = big + input[i+1];
-            else
-                *Flash_ptr++ = big + input[i+1] + 10;
-        }
-        else{
-            char big = input[i];
-            big<<=4;
-            if(input[i+1] < 58)
-                *Flash_ptr++ = big + input[i+1];
-            else
-                *Flash_ptr++ = big + input[i+1]+ 10;
-        }
-    }
-    FCTL1 = FWKEY;                                                  // Clear WRT bit
-    FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
+//         // Write value to flash
+//         if(input[i] < 58){
+//             char big = input[i];
+//             big<<=4;
+//             if(input[i+1] < 58)
+//                 *Flash_ptr++ = big + input[i+1];
+//             else
+//                 *Flash_ptr++ = big + input[i+1] + 10;
+//         }
+//         else{
+//             char big = input[i];
+//             big<<=4;
+//             if(input[i+1] < 58)
+//                 *Flash_ptr++ = big + input[i+1];
+//             else
+//                 *Flash_ptr++ = big + input[i+1]+ 10;
+//         }
+//     }
+//     FCTL1 = FWKEY;                                                  // Clear WRT bit
+//     FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
     
-}
+// }
+
+// //---------------------------------------------------------------------
+// //            loading file data onto flash
+// //---------------------------------------------------------------------
+
+// void loadDataToMem(){  // load all script (input ,until input_slot-1 ,into memLoad place)
+
+//     char *Flash_ptr;                                                // Flash pointer
+//     unsigned int i;
+//     unsigned int size = 0;
+//     if( num_of_files == 10){
+//         lcd_puts("10 files loaded");
+//         delayMs(1000);
+//         lcd_clear();
+//         return;
+//     }
+
+
+//     for ( i = 0; i < num_of_files; i++)
+//         size = size + *((unsigned int *) (0x1014 + MetaDataSize * i));
+
+//     Flash_ptr = (char *) (0xF600 + size);              // Initialize Flash pointer
+//     i = 0;
+//     size = 0;
+//     FCTL1 = FWKEY + ERASE;                                          // Set Erase bit
+//     FCTL3 = FWKEY;                                                  // Clear Lock bit
+//     *Flash_ptr = 0;                                                 // Dummy write to erase Flash segment
+//     FCTL1 = FWKEY + WRT;                                            // Set WRT bit for write operation
+//     for (i=0; i < indexfile-1; i = i+2){      
+        
+//         if (Flash_ptr >= FileEnding){
+//             lcd_puts("No room for data");
+//             delayMs(500);
+//             lcd_clear();
+//             break;
+//         }
+        
+//         // Write value to flash
+//         if(input[i] < 58){
+//             unsigned int big = input[i] - '0';
+//             big<<=4;
+//             if(input[i+1] < 58)
+//                 *Flash_ptr++ = big + input[i+1] - '0';
+//             else
+//                 *Flash_ptr++ = big + input[i+1] - 'a' + 10;
+//         }
+//         else{
+//             unsigned int big = input[i] - 'a' + 10;
+//             big<<=4;
+//             if(input[i+1] < 58)
+//                 *Flash_ptr++ = big + input[i+1] - '0';
+//             else
+//                 *Flash_ptr++ = big + input[i+1] - 'a' + 10;
+//         }
+//         size++;
+//     }
+//     FCTL1 = FWKEY;                                                  // Clear WRT bit
+//     FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
+
+//     char** file_ptr_ptr = (char **) (0x1012 + MetaDataSize*num_of_files);
+//     *file_ptr_ptr =  Flash_ptr - size;
+//     unsigned int* size_ptr = (unsigned int *) (0x1014 + MetaDataSize*num_of_files);
+//     *size_ptr = size;
+//     num_of_files++;
+// }
 
 //---------------------------------------------------------------------
-//            loading file data onto flash
+//            loading script data onto flash
 //---------------------------------------------------------------------
-
-void loadDataToMem(){  // load all script (input ,until input_slot-1 ,into memLoad place)
-
+void loadInToMem(){  // load all script (input ,until input_slot-1 ,into memLoad place)
     char *Flash_ptr;                                                // Flash pointer
     unsigned int i;
-    unsigned int idx = FreeContentSpot();
     unsigned int size = 0;
-    if( idx == -1){
-        lcd_puts("10 files loaded");
-        delayMs(1000);
-        lcd_clear();
-        return;
-    }
+    for ( i = 0; i < num_of_files; i++)
+        size = size + *((unsigned int *) (0x1014 + MetaDataSize * i));
 
-
-    for ( i = 0; i < idx; i++)
-        size = size + ScriptPtrArr[i].fileSize;
-    
-    Flash_ptr = (char *) (0xF600 + size);              // Initialize Flash pointer
-    i = 0;
-    size = 0;
-    FCTL1 = FWKEY + ERASE;                                          // Set Erase bit
+    Flash_ptr = (char *) FileStarting + 64*(memLoad-1);                             // Initialize Flash pointer
+    FCTL2 = FWKEY + FSSEL_2 + FN1;
+    FCTL1 = FWKEY ;                                          // Set Erase bit
     FCTL3 = FWKEY;                                                  // Clear Lock bit
     *Flash_ptr = 0;                                                 // Dummy write to erase Flash segment
     FCTL1 = FWKEY + WRT;                                            // Set WRT bit for write operation
-    for (i=0; i < indexfile-1; i = i+2){      
-        
+    for (i=0; i < indexfile-1; i = i+2){                            // Write value to flash
         if (Flash_ptr >= FileEnding){
             lcd_puts("No room for data");
-            delayMs(500);
+            DelayMs(1000);
             lcd_clear();
-            return;
+            break;
         }
-        
-        // Write value to flash
         if(input[i] < 58){
             unsigned int big = input[i] - '0';
             big<<=4;
@@ -503,21 +531,30 @@ void loadDataToMem(){  // load all script (input ,until input_slot-1 ,into memLo
         }
         size++;
     }
-    FCTL1 = FWKEY;                                                  // Clear WRT bit
-    FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
 
-    char* status_ptr = (char *) (0x1011 + MetaDataSize*idx);
-    *status_ptr = 's'; // 's' for script, need to add t for text
-    char** file_ptr_ptr = (char **) (0x1012 + MetaDataSize*idx);
+    char** file_ptr_ptr = (char **) (0x1012 + MetaDataSize*num_of_files);
     *file_ptr_ptr =  Flash_ptr - size;
-    unsigned int* size_ptr = (unsigned int *) (0x1014 + MetaDataSize*idx);
+    unsigned int* size_ptr = (unsigned int *) (0x1014 + MetaDataSize*num_of_files);
     *size_ptr = size;
-    ScriptPtrArr[idx].filepointer = Flash_ptr - size;
-    ScriptPtrArr[idx].fileSize = size;
+    char* name_ptr = (unsigned int *) (0x1000 + MetaDataSize*num_of_files);
+
+    for ( i = 0; i < 10; i = i + 2){
+        unsigned int big = input[i] - '0';
+            big<<=4;
+            if(input[i+1] < 58)
+                *(name_ptr + i/2) = big + input[i+1] - '0';
+            else
+                *(name_ptr + i) = big + input[i+1] - 'a' + 10;
+    }
+
+    *((char *) (name_ptr + 10)) = '\0';
+
+    char* status_ptr = (char *) (0x1011 + MetaDataSize*num_of_files);
+
+    FCTL1 = FWKEY;                                                  // Clear WRT bit
+    FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit 
     num_of_files++;
 }
-
-
 
 //---------------------------------------------------------------------
 //            printing scripts onto LCD
@@ -525,16 +562,16 @@ void loadDataToMem(){  // load all script (input ,until input_slot-1 ,into memLo
 
 void showScript(unsigned int idx){
     if (size_left < 16)
-        printLcdTop(ScriptPtrArr[idx].filepointer,size_left);
+        printLcdTop((char *) (0x1012 + MetaDataSize*LCD_roll) + 32 * ptr_mov ,size_left);
 
     else if (size_left < 32)
     {
-        printLcdTop(ScriptPtrArr[idx].filepointer,16);
-        printLcdBottom(ScriptPtrArr[idx].filepointer + 16 ,size_left - 16);
+        printLcdTop((char *) (0x1012 + MetaDataSize*LCD_roll) + 32 * ptr_mov ,16);
+        printLcdBottom((char *) (0x1012 + MetaDataSize*LCD_roll) + 16 + 32 * ptr_mov,size_left - 16);
     }
     else{
-        printLcdTop(ScriptPtrArr[idx].filepointer,16);
-        printLcdBottom(ScriptPtrArr[idx].filepointer + 16 ,16);
+        printLcdTop((char *) (0x1012 + MetaDataSize*LCD_roll) + 32 * ptr_mov ,16);
+        printLcdBottom((char *) (0x1012 + MetaDataSize*LCD_roll) + 16 + 32 * ptr_mov,16);
     }
     size_left = size_left - 32;
 }
@@ -566,20 +603,21 @@ void printLcdBottom(char *toPrint, unsigned int n){
 	if(PBsArrIntPend & PB0){
 		PBsArrIntPend &= ~PB0;
         lcd_clear();
-        printLcdTop(ScriptPtrArr[LCD_roll].fileName,10);
-        printLcdBottom(ScriptPtrArr[(LCD_roll + 1) % (num_of_files)].fileName,10);
+        printLcdTop((0x1000 + MetaDataSize*LCD_roll),10);
+        printLcdBottom((0x1000 + MetaDataSize*((LCD_roll + 1) % (num_of_files))),10);
         LCD_roll ++;
         if(LCD_roll > (num_of_files - 1))
             LCD_roll = 0;
         DelayMs(500);
         isScrolling = 1;
         size_left = 0;
+        ptr_mov = 0;
 	}
     else if(PBsArrIntPend & PB1){
         PBsArrIntPend &= ~PB1;
         lcd_clear();
         if (isScrolling == 1){
-            size_left = ScriptPtrArr[LCD_roll].fileSize;
+            size_left = *((unsigned int *) (0x1014 + MetaDataSize*LCD_roll));
             showScript(LCD_roll);
             isScrolling = 2;
             
@@ -587,11 +625,13 @@ void printLcdBottom(char *toPrint, unsigned int n){
         else if (isScrolling == 2 && size_left > 0){
             showScript(LCD_roll);
             isScrolling = 2;
-            
+            ptr_mov++;
+
         }
         else if (isScrolling == 2 && size_left <= 0){
-            size_left = ScriptPtrArr[LCD_roll].fileSize;
+            size_left = *((unsigned int *) (0x1014 + MetaDataSize*LCD_roll));
             showScript(LCD_roll);
+            ptr_mov = 0;
         }
     }
     //enterLPM(lpm_mode); 
@@ -761,60 +801,70 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
       else{
           if(state == state6){
               maskDist = atoi(input);
-              state_or_num = 1;
           }
           else if(state == state2 ||state == state10){
               loc_angel = atoi(input);
-              state_or_num = 1;
           }
           else if(state == state5){
-            unsigned int idx = -1;
-            unsigned int count = 0;
-            unsigned int i;
-            while(idx < 10)
-            {
-                idx++;
-                char* status_ptr = (char *) (0x1011 + MetaDataSize*idx);
-                if(*status_ptr != 's' || *status_ptr != 't'){
-                    break;
-                }
+            // unsigned int idx = -1;
+            // unsigned int count = 0;
+            // unsigned int i;
+            // while(idx < 10)
+            // {
+            //     idx++;
+            //     char* status_ptr = (char *) (0x1011 + MetaDataSize*idx);
+            //     if(*status_ptr != 's' || *status_ptr != 't'){
+            //         break;
+            //     }
                 
-            }
-              if(Status_name_data == 0){
-                Status_name_data = 1;
-                ScriptPtrArr[idx].fileStatus = input[0];
-              }
-              else if(Status_name_data == 1){
-                Status_name_data = 2;
+            // }
+            //   if(Status_name_data == 0){
+            //     Status_name_data = 1;
+            //     FCTL1 = FWKEY + ERASE;                                          // Set Erase bit
+            //     FCTL3 = FWKEY;                                                  // Clear Lock bit
+            //     FCTL1 = FWKEY + WRT;
 
-                for ( i = 0; i < 10; i++)
-                    ScriptPtrArr[idx].fileName[i] = input[i];
+            //     *((char *) (0x1011 + MetaDataSize*idx)) = input[0];
 
-                ScriptPtrArr[idx].fileName[10] = '\0';
-              }
+            //     FCTL1 = FWKEY;                                                  // Clear WRT bit
+            //     FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
+            //   }
+            //   else if(Status_name_data == 1){
+            //     Status_name_data = 2;
+            //     Status_name_data = 1;
+            //     FCTL1 = FWKEY + ERASE;                                          // Set Erase bit
+            //     FCTL3 = FWKEY;                                                  // Clear Lock bit
+            //     FCTL1 = FWKEY + WRT;
 
-              else if(Status_name_data == 2 && !memLoad)
-                memLoad = atoi(input);
+            //     for ( i = 0; i < 10; i++)
+            //         *((char *) (0x1000 + MetaDataSize*idx + i)) = input[i];
+
+            //     *((char *) (0x1000 + MetaDataSize*idx + 10)) = '\0';
+
+            //     FCTL1 = FWKEY;                                                  // Clear WRT bit
+            //     FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
+            //   }
+
+            //   else if(Status_name_data == 2 && !memLoad)
+            //     memLoad = atoi(input);
               
-              else if (Status_name_data == 2 && !memLoad && input[input_slot-2] == '@')
-              {
-                memLoad = atoi(input);
-                Status_name_data = 0;
-              }
+            //   else if (Status_name_data == 2 && !memLoad && input[input_slot-2] == '@')
+            //   {
+            //     memLoad = atoi(input);
+            //     Status_name_data = 0;
+            //   }
               
-            
-
-            //   if(!memLoad)
-            //       memLoad = atoi(input);
+              if(!memLoad)
+                  memLoad = atoi(input);
           }
           else if(state == state8){
               memLoad = atoi(input);
-              state_or_num = 1;
           }
+          state_or_num = 1;
           
       }
 
-    }
+    
 //---------------------------------------------------------------------
 //            Exit from a given LPM
 //---------------------------------------------------------------------
@@ -840,5 +890,5 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
            break;
       }
   };
-
+};
 

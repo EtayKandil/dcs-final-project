@@ -2,7 +2,6 @@ import PySimpleGUI as sg
 import turtle_code
 import serial as ser
 import time
-import helper_functions as hf
 
 
 # globals:
@@ -10,17 +9,80 @@ color = [0 for x in range(120)]
 rad = [0 for x in range(120)]
 angle = [0 for x in range(120)]
 state = '0'
-sent_files = [] # To store info about sent files
+
+
+
+
+def menu_switch(event):
+    if event == "Objects Detector System":
+        return '1'
+    elif event == "Telemeter":
+        return '2'
+    elif event == "Light Sources Detector System":
+        return '3'
+    elif event == "Light Sources and Objects Detector System":
+        return '4'
+    elif event == "Load Script":
+        return '5'
+    elif event == "set mask distance (0-200)cm (def == 100)":
+        return '6'
+    elif event == "LDR config":
+        return '7'
+    elif event == "Play Script (1/2/3)":
+        return '8'
+def decTohex(str):
+    temp = int(str)
+    if temp > 15:
+        return hex(temp)[2:]
+    else:
+        return "0" + hex(temp)[2:]
+def txtToHex(txt):
+    toReturn = ""
+    lines = txt.split('\n')
+    words_by_line = [line.split(' ') for line in lines]
+
+    for line in words_by_line:
+        if len(line) == 1:
+            if line[0] == "clear_lcd":
+                toReturn += "05"
+            elif line[0] == "sleep":
+                toReturn += "08"
+        elif len(line) == 2:
+            if line[0] == "inc_lcd":
+                toReturn += "01"
+            elif line[0] == "dec_lcd":
+                toReturn += "02"
+            elif line[0] == "set_delay":
+                toReturn += "04"
+            elif line[0] == "servo_deg":
+                toReturn += "06"
+            if line[0] == "servo_scan":
+                toReturn += "07"
+                nums = line[1].split(',')
+                toReturn += decTohex(nums[0])
+                toReturn += decTohex(nums[1])
+            else:
+                if line[0] == "rra_lcd":
+                    toReturn += "03"
+                    toReturn += line[1]
+                else:
+                    toReturn += decTohex(line[1])
+    return toReturn
+def openFile(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()
+
 
 
 
 
 def main():
     event = "first time"
+    scriptNum = 0
     start_dot = [0, 0]
     end_dot = [0, 0]
     length = 0
-    s = ser.Serial('COM2', baudrate=9600, bytesize=ser.EIGHTBITS,
+    s = ser.Serial('COM10', baudrate=9600, bytesize=ser.EIGHTBITS,
                    parity=ser.PARITY_NONE, stopbits=ser.STOPBITS_ONE,
                    timeout=1)   # timeout of 1 sec so that the read and write operations are blocking,
                                 # when the timeout expires the program will continue
@@ -35,9 +97,9 @@ def main():
               [sg.Button("Telemeter"),sg.InputText(key='TELangel')],
               [sg.Button("Light Sources Detector System")],
               [sg.Button("Light Sources and Objects Detector System")],
-              [sg.Text("Load up to 10 files (scripts or text).")],
-              [sg.Button("Load File"), sg.InputText(key='-FILE-'), sg.FileBrowse(file_types=(("All Files", "*.*"),))],
-              [sg.Button("Play Script (1-10)"), sg.InputText(key='ScriptNum')],
+              [sg.Text("first 3 script will load to 1, 2, 3 by order")],
+              [sg.Button("Load Script"), sg.InputText(key='-FILE-'), sg.FileBrowse()],
+              [sg.Button("Play Script (1/2/3)"), sg.InputText(key='ScriptNum')],
               [sg.Button("Exit")]]
     window = sg.Window(title = "events manu", layout= layout)
 
@@ -112,7 +174,7 @@ def main():
                 enableTX = True
                 break
 
-            elif event == "Play Script (1-10)":
+            elif event == "Play Script (1/2/3)":
                 lineByte = s.read_until(size=3)  # read  from the buffer until the terminator is received,
                 if "zzz" == lineByte.decode("ascii"):
                     if count > 0:
@@ -157,10 +219,14 @@ def main():
                     start_dot = [rad[count], angle[count]]
                 count += 1
 
-            elif event == "Load File":
+            elif event == "Load Script":
                 lineByte = s.read_until(size=3)
-                if "xx" in lineByte.decode("ascii"):
-                    print(f"script has loaded to slot {lineByte.decode('ascii')[-1]}")
+                if lineByte.decode("ascii") == "xx1":
+                    print("script has loaded to slot 1")
+                elif lineByte.decode("ascii") == "xx2":
+                    print("script has loaded to slot 2")
+                elif lineByte.decode("ascii") == "xx3":
+                    print("script has loaded to slot 3")
                 else:
                     print("something went wrong send again :( ")
                 event = "first time"
@@ -172,30 +238,13 @@ def main():
                 event, val = window.read()
             if event == "Exit":
                 break
-            state = hf.menu_switch(event)
-            if not state:
-                event = "first time"
-                continue
-
+            state = menu_switch(event)
             bytetxMsg = bytes(state + '\n', 'ascii')
             if state == '8':
-                try:
-                    script_num_to_play = int(val['ScriptNum'])
-                    if not (1 <= script_num_to_play <= len(sent_files)):
-                        sg.popup_error(f"Invalid script number. Please enter a number between 1 and {len(sent_files)}.")
-                        event = "first time"
-                        continue
-
-                    if sent_files[script_num_to_play - 1]['type'] == 'text':
-                        sg.popup_error("The selected file is a text file, not a script. Cannot play.")
-                        event = "first time"
-                        continue
-
-                except (ValueError, IndexError):
-                    sg.popup_error("Invalid input. Please enter a valid script number.")
+                if int(val['ScriptNum']) != 1 and int(val['ScriptNum']) != 2 and int(val['ScriptNum']) != 3:
+                    print("not a valid number please insert again")
                     event = "first time"
-                    continue
-
+                    break
             if state == '2':
                 if int(val['TELangel']) < 0 or int(val['TELangel']) > 180 :
                     print("not a valid number please insert again")
@@ -221,50 +270,24 @@ def main():
                 event = "first time"
                 time.sleep(0.25)  # delay for accurate read/write operations on both ends
             elif s.out_waiting == 0 and state == '5':
-                if len(sent_files) >= 10:
-                    sg.popup("Maximum file limit (10) reached. Cannot send more files.")
-                    event = "first time"
-                    continue
-
-                file_path = val['-FILE-']
-                if not file_path:
-                    event = "first time"
-                    continue
-
-                file_type = hf.get_file_type(file_path)
-                file_name = hf.get_file_name(file_path)
-
-                # Send file type
-                file_type_code = '1' if file_type == 'script' else '2'
-                s.write(bytes(file_type_code + '\n', 'ascii'))
-                time.sleep(0.25)
-
-                # Send slot number
-                slot_num = len(sent_files) + 1
-                s.write(bytes(str(slot_num) + '\n', 'ascii'))
-                time.sleep(0.25)
-
-                # Send file header (name)
-                s.write(bytes(file_name + '\n', 'ascii'))
-                time.sleep(0.25)
-
-                file_content = hf.openFile(file_path)
-                if file_type == "script":
-                    content_to_send = hf.txtToHex(file_content)
+                if scriptNum == 3:
+                    layout3 = [[sg.Text("pick a script to replace:")],
+                    [sg.Button("1")],[sg.Button("2")],[sg.Button("3")]]
+                    window3 = sg.Window(title="events manu", layout=layout3)
+                    event3, val3 = window3.read()
+                    bytetxVal = bytes(event3 + '\n', 'ascii')
+                    s.write(bytetxVal)
+                    time.sleep(0.25)
                 else:
-                    content_to_send = file_content
-
-                # Send file content
-                bytetxVal = bytes(content_to_send + '\n', 'ascii')
+                    scriptNum += 1
+                    bytetxVal = bytes(str(scriptNum) + '\n', 'ascii')
+                    s.write(bytetxVal)
+                    time.sleep(0.25)
+                bytetxVal = bytes(txtToHex(openFile(val['-FILE-'])) + '\n', 'ascii')
                 s.write(bytetxVal)
-                time.sleep(0.25)
-
-                sent_files.append({'type': file_type, 'name': file_name})
-                print(f"File '{file_name}' ({file_type}) sent to slot {slot_num}.")
-
+                time.sleep(0.25)  # delay for accurate read/write operations on both ends
                 if s.out_waiting == 0:
                     enableTX = False
-
             elif s.out_waiting == 0 and state == '8':
                 bytetxVal = bytes(val['ScriptNum'] + '\n', 'ascii')
                 s.write(bytetxVal)
@@ -285,4 +308,5 @@ def main():
 
 
 if __name__ == '__main__':
+    scriptNum = 0
     main()

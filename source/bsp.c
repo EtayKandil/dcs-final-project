@@ -1,16 +1,16 @@
 #include  "../header/bsp_430G2553.h"
 #include  "../header/halGPIO.h"
 
-struct fileManager ScriptPtrArr[10] = {{{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0}, 
-                            {{0}, 'e', 0, 0},
-                            {{0}, 'e', 0, 0}};
+// struct fileManager ScriptPtrArr[10] = {{{0}, 'e', 0, 0}, 
+//                             {{0}, 'e', 0, 0}, 
+//                             {{0}, 'e', 0, 0}, 
+//                             {{0}, 'e', 0, 0}, 
+//                             {{0}, 'e', 0, 0}, 
+//                             {{0}, 'e', 0, 0}, 
+//                             {{0}, 'e', 0, 0}, 
+//                             {{0}, 'e', 0, 0}, 
+//                             {{0}, 'e', 0, 0},
+//                             {{0}, 'e', 0, 0}};
 unsigned int num_of_files = 0;
 
 //-----------------------------------------------------------------------------  
@@ -34,7 +34,7 @@ void GPIOconfig(void){
     // PushButtons Setup
   PBsArrPortSel &= ~0x81;
   PBsArrPortDir &= ~0x81;
-  PBsArrIntEn &= ~0x81;              // enable interrupts on PB0 and PB3
+  PBsArrIntEn |= 0x81;              // enable interrupts on PB0 and PB3
   PBsArrIntEdgeSel |= 0x81;  	     // pull-up mode
   PBsArrIntPend &= ~0xFF;            // clear pending interrupts
 
@@ -125,41 +125,39 @@ void FileModeConfig(void){
     {
         count++;
         char* status_ptr = (char *) (0x1011 + MetaDataSize*count);
-        if(*status_ptr != 's' || *status_ptr != 't'){
+        if(*status_ptr != 's' && *status_ptr != 't'){
             break;
         }
         
     }
 
-    while(idx <= count){
-        ScriptPtrArr[idx].filepointer = (char *) (0xF600 + MetaDataSize*idx);
-        ScriptPtrArr[idx].fileSize = (unsigned int *) (0x1014 + MetaDataSize*idx);
-        ScriptPtrArr[idx].fileStatus = (char *) (0x1011 + MetaDataSize*idx);
-        NameFlashToRam(idx);
-        idx++;
-    }
+    // while(idx <= count){
+    //     ScriptPtrArr[idx].filepointer = (char *) (0xF600 + MetaDataSize*idx);
+    //     ScriptPtrArr[idx].fileSize = (unsigned int *) (0x1014 + MetaDataSize*idx);
+    //     ScriptPtrArr[idx].fileStatus = (char *) (0x1011 + MetaDataSize*idx);
+    //     NameFlashToRam(idx);
+    //     idx++;
+    // }
 
-    while (idx < 10){
-        ScriptPtrArr[idx].filepointer = 0;
-        ScriptPtrArr[idx].fileSize = 0;
-        ScriptPtrArr[idx].fileStatus = 'e';
-        ScriptPtrArr[idx].fileName[0] = '\0';
-    }
+    // while (idx < 10){
+    //     ScriptPtrArr[idx].filepointer = 0;
+    //     ScriptPtrArr[idx].fileSize = 0;
+    //     ScriptPtrArr[idx].fileStatus = 'e';
+    //     ScriptPtrArr[idx].fileName[0] = '\0';
+    // }
     num_of_files = count;
 
 }
 
-void NameFlashToRam(int idx){
-    int i;
-    if (ScriptPtrArr[idx].fileStatus == 's' || ScriptPtrArr[idx].fileStatus == 't'){
-        char* flash_ptr = (char *) (0x1000 + (idx * MetaDataSize));
+// void NameFlashToRam(int idx){
+//     int i;
+//     if (ScriptPtrArr[idx].fileStatus == 's' || ScriptPtrArr[idx].fileStatus == 't'){
+//         char* flash_ptr = (char *) (0x1000 + (idx * MetaDataSize));
                 
-        for (i = 0; i < 10; i++)
-            ScriptPtrArr[idx].fileName[i] = flash_ptr[i];
+//         for (i = 0; i < 10; i++)
+//             ScriptPtrArr[idx].fileName[i] = flash_ptr[i];
         
-        ScriptPtrArr[idx].fileName[10] = '\0';
-    }
+//         ScriptPtrArr[idx].fileName[10] = '\0';
+//     }
         
-        
-    
-}
+// }

@@ -14,8 +14,8 @@ enum SYSmode lpm_mode;
   lcd_init();
   lcd_clear();
   servo_Tozero();
-
-
+  delete_all_files();
+  
 
   while(1){
 	switch(state){
@@ -24,43 +24,56 @@ enum SYSmode lpm_mode;
 		break;
 
       case state1:
+          PBsArrIntEn &= ~0x81;
           servo_sweep(0,180);
           state = state0;
+          PBsArrIntEn |= 0x81;
           break;
 
 	  case state2:
+          PBsArrIntEn &= ~0x81;
 	      telemeter();
+          PBsArrIntEn |= 0x81;
 	      break;
 
 	  case state3:
+           PBsArrIntEn &= ~0x81;
 	      servo_sweep(0,180);
 	      state = state0;
+          PBsArrIntEn |= 0x81;
 		  break;
 
       case state4:
+          PBsArrIntEn &= ~0x81;
           servo_sweep(0,180);
           state = state0;
-
+           PBsArrIntEn |= 0x81;
 		  break;
 
       case state5:
-          PBsArrIntEn |= 0x81;
+        PBsArrIntEn &= ~0x81;
           loadScript();
           state = state0;
-          PBsArrIntEn &= ~0x81;
+          PBsArrIntEn |= 0x81;
           break;
 
       case state6:
+          PBsArrIntEn &= ~0x81;
           setMask();
           state = state0;
+          PBsArrIntEn |= 0x81;
           break;
 
       case state7:
+          PBsArrIntEn &= ~0x81;
           LDRconfig();
           state = state0;
+          PBsArrIntEn |= 0x81;
           break;
       case state8:
+          PBsArrIntEn &= ~0x81;
           playScript();
+          PBsArrIntEn |= 0x81;
           break;
 	}
   }

@@ -28,8 +28,10 @@ def menu_switch(event):
         return '6'
     elif event == "LDR config":
         return '7'
-    elif event == "Play Script (1/2/3)":
+    elif event == "Play Script (1...10)":
         return '8'
+    elif event == "Delete all scripts":
+        return '9'
 def decTohex(str):
     temp = int(str)
     if temp > 15:
@@ -82,7 +84,7 @@ def main():
     start_dot = [0, 0]
     end_dot = [0, 0]
     length = 0
-    s = ser.Serial('COM10', baudrate=9600, bytesize=ser.EIGHTBITS,
+    s = ser.Serial('COM2', baudrate=9600, bytesize=ser.EIGHTBITS,
                    parity=ser.PARITY_NONE, stopbits=ser.STOPBITS_ONE,
                    timeout=1)   # timeout of 1 sec so that the read and write operations are blocking,
                                 # when the timeout expires the program will continue
@@ -97,16 +99,40 @@ def main():
               [sg.Button("Telemeter"),sg.InputText(key='TELangel')],
               [sg.Button("Light Sources Detector System")],
               [sg.Button("Light Sources and Objects Detector System")],
-              [sg.Text("first 3 script will load to 1, 2, 3 by order")],
+              [sg.Text("first 10 scripts will load to 1, 2, 3 by order")],
               [sg.Button("Load Script"), sg.InputText(key='-FILE-'), sg.FileBrowse()],
-              [sg.Button("Play Script (1/2/3)"), sg.InputText(key='ScriptNum')],
+              [sg.Button("Play Script (1...10)"), sg.InputText(key='ScriptNum')],
+              [sg.Button("Delete All scripts")],
               [sg.Button("Exit")]]
-    window = sg.Window(title = "events manu", layout= layout)
+    window = sg.Window(title = "Events Menu", layout= layout)
 
     count = 0
     count2 = 0
     while (event != "Exit"):
         # RX
+        # lineByte = s.read_until(size=3) #
+        # if "xx0" == lineByte.decode("ascii"):
+        #     scriptNum = 0
+        # if "xx1" == lineByte.decode("ascii"):
+        #     scriptNum = 1
+        # if "xx2" == lineByte.decode("ascii"):
+        #     scriptNum = 2
+        # if "xx3" == lineByte.decode("ascii"):
+        #     scriptNum = 3
+        # if "xx4" == lineByte.decode("ascii"):
+        #     scriptNum = 4
+        # if "xx5" == lineByte.decode("ascii"):
+        #     scriptNum = 5
+        # if "xx6" == lineByte.decode("ascii"):
+        #     scriptNum = 6
+        # if "xx7" == lineByte.decode("ascii"):
+        #     scriptNum = 7
+        # if "xx8" == lineByte.decode("ascii"):
+        #     scriptNum = 8
+        # if "xx9" == lineByte.decode("ascii"):
+        #     scriptNum = 9
+        # if "xx:" == lineByte.decode("ascii"):
+        #     scriptNum = 10
         while (s.in_waiting > 0):  # while the input buffer isn't empty
             if event == "Objects Detector System" or event == "Light Sources Detector System" or event == "Light Sources and Objects Detector System":
                 lineByte = s.read_until(size=3)  # read  from the buffer until the terminator is received,
@@ -174,7 +200,7 @@ def main():
                 enableTX = True
                 break
 
-            elif event == "Play Script (1/2/3)":
+            elif event == "Play Script (1...10)":
                 lineByte = s.read_until(size=3)  # read  from the buffer until the terminator is received,
                 if "zzz" == lineByte.decode("ascii"):
                     if count > 0:
@@ -227,10 +253,33 @@ def main():
                     print("script has loaded to slot 2")
                 elif lineByte.decode("ascii") == "xx3":
                     print("script has loaded to slot 3")
+                elif lineByte.decode("ascii") == "xx4":
+                    print("script has loaded to slot 4")
+                elif lineByte.decode("ascii") == "xx5":
+                    print("script has loaded to slot 5")
+                elif lineByte.decode("ascii") == "xx6":
+                    print("script has loaded to slot 6")
+                elif lineByte.decode("ascii") == "xx7":
+                    print("script has loaded to slot 7")
+                elif lineByte.decode("ascii") == "xx8":
+                    print("script has loaded to slot 8")
+                elif lineByte.decode("ascii") == "xx9":
+                    print("script has loaded to slot 9")
+                elif lineByte.decode("ascii") == "xx:":
+                    print("script has loaded to slot 10")
                 else:
                     print("something went wrong send again :( ")
                 event = "first time"
                 enableTX = True
+
+            elif event == "Delete all scripts":
+                lineByte = s.read_until(size=3)
+                if "xxx" == lineByte.decode("ascii"):
+                    print("all scripts deleted")
+                    scriptNum = 0
+                    enableTX = True
+
+                event = "first time"
         # TX
         while s.out_waiting > 0 or enableTX:
             count = 0
@@ -241,7 +290,7 @@ def main():
             state = menu_switch(event)
             bytetxMsg = bytes(state + '\n', 'ascii')
             if state == '8':
-                if int(val['ScriptNum']) != 1 and int(val['ScriptNum']) != 2 and int(val['ScriptNum']) != 3:
+                if int(val['ScriptNum']) != 1 and int(val['ScriptNum']) != 2 and int(val['ScriptNum']) != 3 and int(val['ScriptNum']) != 4 and int(val['ScriptNum']) != 5 and int(val['ScriptNum']) != 6 and int(val['ScriptNum']) != 7 and int(val['ScriptNum']) != 8 and int(val['ScriptNum']) != 9 and int(val['ScriptNum']) != 10:
                     print("not a valid number please insert again")
                     event = "first time"
                     break
@@ -270,22 +319,31 @@ def main():
                 event = "first time"
                 time.sleep(0.25)  # delay for accurate read/write operations on both ends
             elif s.out_waiting == 0 and state == '5':
-                if scriptNum == 3:
-                    layout3 = [[sg.Text("pick a script to replace:")],
-                    [sg.Button("1")],[sg.Button("2")],[sg.Button("3")]]
-                    window3 = sg.Window(title="events manu", layout=layout3)
-                    event3, val3 = window3.read()
-                    bytetxVal = bytes(event3 + '\n', 'ascii')
-                    s.write(bytetxVal)
-                    time.sleep(0.25)
+                if scriptNum == 10:
+                    print("delete the scripts to load more")
+                    state = '0'
+                #     layout3 = [[sg.Text("pick a script to replace:")],
+                #     # [sg.Button("1")],[sg.Button("2")],[sg.Button("3")],[sg.Button("4")],[sg.Button("5")],[sg.Button("6")],[sg.Button("1")],[sg.Button("2")],[sg.Button("3")]]
+                #     window3 = sg.Window(title="events manu", layout=layout3)
+                #     event3, val3 = window3.read()
+                #     bytetxVal = bytes(event3 + '\n', 'ascii')
+                #     s.write(bytetxVal)
+                #     time.sleep(0.25)
                 else:
+                    file_path = val.get('-FILE-', '')
+                    i = max(file_path.rfind('/'), file_path.rfind('\\'))
+                    filename = file_path[i + 1:] if i != -1 else file_path  # e.g. "script1_code.txt"
+                    name = filename.rsplit('.', 1)[0]  # e.g. "script1_code"
                     scriptNum += 1
-                    bytetxVal = bytes(str(scriptNum) + '\n', 'ascii')
+                    bytetxVal = bytes('s' + '\n', 'ascii')
                     s.write(bytetxVal)
                     time.sleep(0.25)
-                bytetxVal = bytes(txtToHex(openFile(val['-FILE-'])) + '\n', 'ascii')
-                s.write(bytetxVal)
-                time.sleep(0.25)  # delay for accurate read/write operations on both ends
+                    bytetxVal = bytes(name + '\n', 'ascii')
+                    s.write(bytetxVal)
+                    time.sleep(0.25)
+                    bytetxVal = bytes(txtToHex(openFile(val['-FILE-'])) + '\n', 'ascii')
+                    s.write(bytetxVal)
+                    time.sleep(0.25)  # delay for accurate read/write operations on both ends
                 if s.out_waiting == 0:
                     enableTX = False
             elif s.out_waiting == 0 and state == '8':
@@ -300,10 +358,6 @@ def main():
                 enableTX = False
 
     window.close()
-
-
-
-
 
 
 

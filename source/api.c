@@ -2,7 +2,7 @@
 #include  "../header/halGPIO.h"     // private library - HAL layer
 
 char counterToPrint[5];
-unsigned int objectDist[2][60];
+// unsigned int objectDist[2][60];
 //                                   5   10  15  20  25  30  35  40  45  50
 unsigned int lightToDist[2][10] = {{600,650,692,734,776,818,860,902,950,1023},
                                    {540,600,635,670,705,740,775,810,1000,1000}};
@@ -117,7 +117,7 @@ void servo_sweep(unsigned int l, unsigned int r){ //l<r
             case state1:
                 tmp = ultrasonic_measure();
                 if(i<60)
-                    objectDist[0][i]= tmp;
+                    // objectDist[0][i]= tmp;
                 if( tmp <= maskDist ){
                     sendToPC(i);                    //send angle
                     sendToPC(tmp);                  //send val
@@ -127,7 +127,7 @@ void servo_sweep(unsigned int l, unsigned int r){ //l<r
             case state3:
                 tmp = readLDRs();
                 if(i<60)
-                    objectDist[1][i]= tmp;
+                    // objectDist[1][i]= tmp;
                 if(tmp > 0 ){
                     sendToPC(i);                    //send angle
  //                   sendToPC(ultrasonic_measure()); //send val
@@ -139,8 +139,8 @@ void servo_sweep(unsigned int l, unsigned int r){ //l<r
                 tmp = ultrasonic_measure();
                 tmp2 = readLDRs();
                 if(i<60){
-                    objectDist[0][i] = tmp;
-                    objectDist[1][i] = tmp2;
+                    // objectDist[0][i] = tmp;
+                    // objectDist[1][i] = tmp2;
                 }
                 if(tmp2 > 0){
                     sendToPC(i);                    //send angle
@@ -157,7 +157,7 @@ void servo_sweep(unsigned int l, unsigned int r){ //l<r
             case state8:
                 tmp = ultrasonic_measure();
                 if(i<60)
-                    objectDist[0][i]= tmp;
+                    // objectDist[0][i]= tmp;
                 if( tmp <= maskDist ){
                     sendToPC(i);                    //send angle
                     sendToPC(tmp);                  //send val
@@ -252,6 +252,7 @@ unsigned int ultrasonic_measure(){
     ///////////////////////////////////////////////////////////////
     dist = 0;
     return to_return;
+
 }
 
 //---------------------------------------------------------------------
@@ -325,35 +326,6 @@ void setMask(){
     enterLPM(0);
 }
 //---------------------------------------------------------------------
-//            load name into flash
-//---------------------------------------------------------------------
-// void loadName(){
-//     enterLPM(0);
-//     enterLPM(0);
-//     loadNameToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)
-//     timerA0On(15);
-//     TX_to_send[0] = 'x';
-//     TX_to_send[1] = 'x';
-//     TX_to_send[2] = '0'+ memLoad;
-//     enable_send_to_pc();
-//     memLoad = 0;
-// }
-
-// //---------------------------------------------------------------------
-// //            load data into flash
-// //---------------------------------------------------------------------
-// void loadData(){
-//     enterLPM(0);
-//     enterLPM(0);
-//     loadDataToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)
-//     timerA0On(15);
-//     TX_to_send[0] = 'x';
-//     TX_to_send[1] = 'x';
-//     TX_to_send[2] = '0'+ memLoad;
-//     enable_send_to_pc();
-//     memLoad = 0;
-// }
-//---------------------------------------------------------------------
 //            load script into flash
 //---------------------------------------------------------------------
 void loadScript(){
@@ -377,7 +349,7 @@ void playScript(){
     unsigned int size_sum = 0;
     unsigned int i;
     char *Flash_ptr;
-    for ( i = 0; i < memLoad; i++)
+    for ( i = 0; i < (memLoad -1); i++)
         size_sum = size_sum + *((unsigned int *) (0x100E + MetaDataSize * i));
 
     Flash_ptr = (char *) FileStarting + size_sum;
@@ -386,6 +358,7 @@ void playScript(){
     x = *Flash_ptr;
     if((x<1) || (8<x))
         command = 0;
+    lcd_data('a');
     while(i < 10 && command){
         switch(*Flash_ptr++){
             unsigned int tmp = Flash_ptr;
@@ -436,6 +409,7 @@ void delete_all_files(){
     wipe_info_DCB();
     erase_segments_4_3_2_1();
     num_of_files = 0;
+    sendEndSigToPC();
 }
 
 static void erase_seg(volatile unsigned char *base){

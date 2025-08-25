@@ -120,19 +120,15 @@ void UARTconfig(void){
 //-------------------------------------------------------------------------------------
 void FileModeConfig(void){
     int count = 0;
-    int idx = 0;
 
-    // while(count < 10)
-    // {
-    //     count++;
-    //     char* status_ptr = (char *) (0x100B + MetaDataSize*count);
-    //     if(*status_ptr != 's' && *status_ptr != 't'){
-    //         break;
-    //     }
-        
-    // }
-
-
+    while(count < 10)
+    {
+        count++;
+        char* status_ptr = (char *) (0x100B + MetaDataSize*count);
+        if(*status_ptr != 's' && *status_ptr != 't')
+            break;
+    }
+    
     num_of_files = count;
 
 }

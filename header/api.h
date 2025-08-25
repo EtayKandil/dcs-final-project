@@ -19,6 +19,7 @@ extern void inc_lcd(int x);
 extern void dec_lcd(int x);
 extern void rra_lcd(char x);
 extern void set_delay_d(int d);
+extern void delete_all_files();
 
 extern void LDRconfig();
 extern void sendToPC(unsigned int num);

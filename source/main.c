@@ -14,7 +14,7 @@ enum SYSmode lpm_mode;
   lcd_init();
   lcd_clear();
   servo_Tozero();
-  delete_all_files();
+  
   
 
   while(1){
@@ -52,10 +52,14 @@ enum SYSmode lpm_mode;
 
       case state5:
         PBsArrIntEn &= ~0x81;
-          loadScript();
-          state = state0;
-          PBsArrIntEn |= 0x81;
-          break;
+        // TX_to_send[0] = 'x';
+        // TX_to_send[1] = 'x';
+        // TX_to_send[2] = '0'+ num_of_files;
+        // enable_send_to_pc();
+        loadScript();
+        state = state0;
+        PBsArrIntEn |= 0x81;
+        break;
 
       case state6:
           PBsArrIntEn &= ~0x81;
@@ -72,9 +76,18 @@ enum SYSmode lpm_mode;
           break;
       case state8:
           PBsArrIntEn &= ~0x81;
+        // TX_to_send[0] = 'x';
+        // TX_to_send[1] = 'x';
+        // TX_to_send[2] = '0'+ num_of_files;
+        // enable_send_to_pc();
           playScript();
           PBsArrIntEn |= 0x81;
           break;
+      case state9:
+          PBsArrIntEn &= ~0x81;
+          delete_all_files();
+          state = state0;
+          PBsArrIntEn |= 0x81;
 	}
   }
 

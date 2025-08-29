@@ -489,6 +489,8 @@ void loadNameToMem(){  // load all script (input ,until input_slot-1 ,into memLo
         *name_ptr++ = input[i];
     }
 
+    
+
     FCTL1 = FWKEY;                                                  // Clear WRT bit
     FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit 
 }
@@ -522,16 +524,22 @@ void loadMetadataToMem(unsigned int size, char* Flash_ptr){  // load all script 
 
 void showScript(unsigned int idx){
     if (size_left < 16)
-        printLcdTop((char *) (0x100C + MetaDataSize*LCD_roll) + 32 * ptr_mov ,size_left);
+        printLcdTop((char *) (*((unsigned int *)(0x100C + MetaDataSize*LCD_roll)) + 32 * ptr_mov) ,size_left);
+        // printLcdTop((char *)(0xF600 + 32 * ptr_mov), size_left);
 
     else if (size_left < 32)
     {
-        printLcdTop((char *) (0x100C + MetaDataSize*LCD_roll) + 32 * ptr_mov ,16);
-        printLcdBottom((char *) (0x100C + MetaDataSize*LCD_roll) + 16 + 32 * ptr_mov,size_left - 16);
+        printLcdTop((char *) (*((unsigned int *)(0x100C + MetaDataSize*LCD_roll)) + 32 * ptr_mov) ,16);
+        printLcdBottom((char *) (*((unsigned int *)(0x100C + MetaDataSize*LCD_roll)) + 16 + 32 * ptr_mov),size_left - 16);
+
+        // printLcdTop((char *)(0xF600 + 32 * ptr_mov), 16);
+        // printLcdBottom((char *)(0xF600 + 32 * ptr_mov + 16), size_left - 16);
     }
     else{
-        printLcdTop((char *) (0x100C + MetaDataSize*LCD_roll) + 32 * ptr_mov ,16);
-        printLcdBottom((char *) (0x100C + MetaDataSize*LCD_roll) + 16 + 32 * ptr_mov,16);
+        printLcdTop((char *) (*((unsigned int *)(0x100C + MetaDataSize*LCD_roll)) + 32 * ptr_mov) ,16);
+        printLcdBottom((char *) (*((unsigned int *)(0x100C + MetaDataSize*LCD_roll)) + 16 + 32 * ptr_mov),16);
+        // printLcdTop((char *)(0xF600 + 32 * ptr_mov), 16);
+        // printLcdBottom((char *)(0xF600 + 32 * ptr_mov + 16), 16);
     }
     size_left = size_left - 32;
 }

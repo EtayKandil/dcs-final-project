@@ -35,6 +35,14 @@ void LDRconfig(){
         lcd_home();
         lightToDist[0][i] = scanLDR1();
         // lightToDist[1][i] = scanLDR2();
+        intNumToString(lightToDist[0][i],5);
+        lcd_puts(counterToPrint);
+        // lcd_puts("-");
+        // intNumToString(output_voltage2,5);
+        // lcd_puts(counterToPrint);
+        lcd_new_line;
+        lcd_data(i+'0');
+        timerA0On(1000);
     }
 }
 

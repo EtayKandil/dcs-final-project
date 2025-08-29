@@ -75,7 +75,11 @@ def openFile(file_path):
         return file.read()
 
 
-
+def remove_newlines(text: str) -> str:
+    """Return the input text with all newline characters (CR and LF) removed."""
+    if text is None:
+        return ""
+    return text.replace('\n', ' ')
 
 
 def main():
@@ -114,7 +118,9 @@ def main():
                 lineByte = s.read_until(size=3)  # read  from the buffer until the terminator is received,
                 if "xxx" == lineByte.decode("ascii"):
                     if length == 0:
-                        turtle_code.draw_dot(color[count - 1], rad[count - 1], angle[count - 1])
+                        # turtle_code.draw_dot(color[count - 1], rad[count - 1], angle[count - 1])
+                        smart = False
+                        itay = smart
                     else:
                         turtle_code.draw_line(color[count - 1], start_dot[0], start_dot[1], end_dot[0], end_dot[1])
                     count = 0
@@ -306,6 +312,7 @@ def main():
                 #     s.write(bytetxVal)
                 #     time.sleep(0.25)
                 else:
+                    content = openFile(val['-FILE-'])
                     file_path = val.get('-FILE-', '')
                     i = max(file_path.rfind('/'), file_path.rfind('\\'))
                     filename = file_path[i + 1:] if i != -1 else file_path  # e.g. "script1_code.txt"
@@ -318,10 +325,11 @@ def main():
 
                     s.write(bytetxVal)
                     time.sleep(0.25)
+
+                    content = remove_newlines(content)
                     bytetxVal = bytes(name + '\n', 'ascii')
                     s.write(bytetxVal)
                     time.sleep(0.25)
-                    content = openFile(val['-FILE-'])
                     if (name.startswith("text")):
                         bytetxVal = bytes(content  + '\n', 'ascii')
 
@@ -329,18 +337,15 @@ def main():
                         bytetxVal = bytes(txtToHex(content)  + '\n', 'ascii')
 
                     k = 0
-                    print(len(bytetxVal))
                     if (len(bytetxVal) > 200):
                         tmp = len(bytetxVal) // 200
                         while (k < tmp):
                             part = bytetxVal[k * 200:(k + 1) * 200] + b'\n'
-                            print(len(part))
                             s.write(part)
                             time.sleep(0.25)
                             k += 1
                         if (len(bytetxVal) % 200 != 0):
                             part = bytetxVal[k * 200:]
-                            print(len(part))
                             s.write(part)
                             time.sleep(0.25)
                     else:

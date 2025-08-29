@@ -571,14 +571,24 @@ void printLcdBottom(char *toPrint, unsigned int n){
 	if(PBsArrIntPend & PB0){
 		PBsArrIntPend &= ~PB0;
         lcd_clear();
-        printLcdTop((char*)(0x1000 + MetaDataSize*LCD_roll),10);
-        if (((LCD_roll + 1) % (num_of_files)) != 0)
-            printLcdBottom((char*)(0x1000 + MetaDataSize*((LCD_roll + 1) % (num_of_files))),10);
+        unsigned int i;
+        while (*(char*)(0x100A + MetaDataSize*LCD_roll) != 't' ){ //infinite loop if no texts are found
+             LCD_roll ++;
+             if(LCD_roll > (num_of_files - 1))
+                LCD_roll = 0;
+
+            }
         
-        // printLcdBottom((char*)(0x1000 + MetaDataSize*((LCD_roll + 1) % (num_of_files))),10);
-        LCD_roll ++;
-        if(LCD_roll > (num_of_files - 1))
-            LCD_roll = 0;
+
+        printLcdTop((char*)(0x1000 + MetaDataSize*LCD_roll),10);
+        LCD_roll++;
+        // if (((LCD_roll + 1) % (num_of_files)) != 0)
+        //     printLcdBottom((char*)(0x1000 + MetaDataSize*((LCD_roll + 1) % (num_of_files))),10);
+        
+        
+       
+           
+        
         DelayMs(500);
         isScrolling = 1;
         size_left = 0;
@@ -589,19 +599,19 @@ void printLcdBottom(char *toPrint, unsigned int n){
         lcd_clear();
         if (isScrolling == 1){
             size_left = *((unsigned int *) (0x100E + MetaDataSize*LCD_roll));
-            showScript(LCD_roll);
+            showScript(LCD_roll - 1);
             isScrolling = 2;
             
         }
         else if (isScrolling == 2 && size_left > 0){
-            showScript(LCD_roll);
+            showScript(LCD_roll - 1);
             isScrolling = 2;
             ptr_mov++;
 
         }
         else if (isScrolling == 2 && size_left <= 0){
             size_left = *((unsigned int *) (0x100E + MetaDataSize*LCD_roll));
-            showScript(LCD_roll);
+            showScript(LCD_roll - 1);
             ptr_mov = 0;
         }
     }

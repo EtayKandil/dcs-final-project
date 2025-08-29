@@ -23,6 +23,7 @@ unsigned int memLoad = 0;
 unsigned int ptr_mov = 0;
 unsigned int is_file_done = 0;
 unsigned int is_text = 0;
+unsigned int size_of_curr_file = 0;
 
 
 //--------------------------------------------------------------------
@@ -387,7 +388,7 @@ void loadInToMem(){  // load all script (input ,until input_slot-1 ,into memLoad
     for ( i = 0; i < num_of_files; i++)
         size_sum = size_sum + *((unsigned int *) (0x100E + MetaDataSize * i));
 
-    Flash_ptr = (char *) FileStarting + size_sum;                             // Initialize Flash pointer
+    Flash_ptr = (char *) FileStarting + size_sum + size_of_curr_file;                             // Initialize Flash pointer
     FCTL1 = FWKEY ;                                          // Set Erase bit
     FCTL3 = FWKEY;                                                  // Clear Lock bit
     *Flash_ptr = 0;                                                 // Dummy write to erase Flash segment
@@ -421,7 +422,7 @@ void loadInToMem(){  // load all script (input ,until input_slot-1 ,into memLoad
     FCTL1 = FWKEY;                                                  // Clear WRT bit
     FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit 
 
-    loadMetadataToMem(indexfile / 2, FileStarting + size_sum);
+    loadMetadataToMem(indexfile / 2 + size_of_curr_file, FileStarting + size_sum);
     if (is_file_done){
         num_of_files++;
     }
@@ -441,7 +442,7 @@ void loadTextToMem(){  // load all script (input ,until input_slot-1 ,into memLo
     for ( i = 0; i < num_of_files; i++)
         size_sum = size_sum + *((unsigned int *) (0x100E + MetaDataSize * i));
 
-    Flash_ptr = (char *) FileStarting + size_sum;                             // Initialize Flash pointer
+    Flash_ptr = (char *) FileStarting + size_sum + size_of_curr_file;                             // Initialize Flash pointer
     FCTL1 = FWKEY;                                                  // Set Erase bit
     FCTL3 = FWKEY;                                                  // Clear Lock bit
     *Flash_ptr = 0;                                                 // Dummy write to erase Flash segment
@@ -460,7 +461,7 @@ void loadTextToMem(){  // load all script (input ,until input_slot-1 ,into memLo
     FCTL1 = FWKEY;                                                  // Clear WRT bit
     FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit 
 
-    loadMetadataToMem(indexfile - 1, FileStarting + size_sum);
+    loadMetadataToMem(indexfile - 1 + size_of_curr_file, FileStarting + size_sum);
     if (is_file_done){
         num_of_files++;
     }
@@ -500,8 +501,13 @@ void loadMetadataToMem(unsigned int size, char* Flash_ptr){  // load all script 
     
     char** file_ptr_ptr = (char **) (0x100C + MetaDataSize*num_of_files);
     *file_ptr_ptr =  Flash_ptr;
-    unsigned int* size_ptr = (unsigned int *) (0x100E + MetaDataSize*num_of_files);
-    *size_ptr = size;
+    if (is_file_done)
+    {
+        unsigned int* size_ptr = (unsigned int *) (0x100E + MetaDataSize*num_of_files);
+        *size_ptr = size;
+    }
+    
+    
 
     // char* status_ptr = (char *) (0x100A + MetaDataSize*num_of_files);
     // *status_ptr = 's';
@@ -737,6 +743,7 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
                   state_or_num = 0;
                   is_file_done = 0;
                   is_text = 0;
+                  size_of_curr_file = 0;
                   break;
               case '6' :
                   state = state6;
@@ -766,8 +773,9 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
               state_or_num = 1;
           }
           else if(state == state5){
-                if (input_slot <= 199){
+                if (indexfile <= 199 && Status_name_data == 2){
                     is_file_done = 1;
+
                 }
             
               if(Status_name_data == 0){
@@ -788,6 +796,7 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
               }
               else if(Status_name_data == 1){
                 Status_name_data = 2;
+                is_file_done = 0;
                 loadNameToMem();
                 
               }
@@ -804,8 +813,6 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
           }
           else
               state_or_num = 1;
-          
-          
       }
 
     

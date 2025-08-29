@@ -321,10 +321,19 @@ void loadScript(){
     enterLPM(0);
     enterLPM(0);
     enterLPM(0);
-    if (is_text){
-        loadTextToMem();
-        // enterLPM(0);
+    while (!is_file_done)
+    {
+        if (is_text){
+            loadTextToMem();
+        }
+        else{
+            loadInToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)
+        }
+        size_of_curr_file = size_of_curr_file + 200;
         enterLPM(0);
+    }
+    
+    if (is_text){
         loadTextToMem();
     }
     else{

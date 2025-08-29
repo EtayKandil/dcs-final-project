@@ -25,6 +25,8 @@ extern unsigned int is_text;
 extern unsigned int modulo(unsigned int a, unsigned int b);
 extern unsigned int diveide(unsigned int a, unsigned int b);
 extern unsigned int mul(unsigned int a, unsigned int b);
+extern unsigned int is_file_done;
+extern unsigned int size_of_curr_file;
 // extern char *Flash_ptr;
 
 // struct fileManager{

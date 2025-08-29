@@ -34,7 +34,7 @@ void LDRconfig(){
         lcd_clear();
         lcd_home();
         lightToDist[0][i] = scanLDR1();
-        lightToDist[1][i] = scanLDR2();
+        // lightToDist[1][i] = scanLDR2();
     }
 }
 
@@ -116,8 +116,6 @@ void servo_sweep(unsigned int l, unsigned int r){ //l<r
         switch(state){
             case state1:
                 tmp = ultrasonic_measure();
-                if(i<60)
-                    // objectDist[0][i]= tmp;
                 if( tmp <= maskDist ){
                     sendToPC(i);                    //send angle
                     sendToPC(tmp);                  //send val
@@ -126,8 +124,6 @@ void servo_sweep(unsigned int l, unsigned int r){ //l<r
                 break;
             case state3:
                 tmp = readLDRs();
-                if(i<60)
-                    // objectDist[1][i]= tmp;
                 if(tmp > 0 ){
                     sendToPC(i);                    //send angle
  //                   sendToPC(ultrasonic_measure()); //send val
@@ -138,13 +134,8 @@ void servo_sweep(unsigned int l, unsigned int r){ //l<r
             case state4:
                 tmp = ultrasonic_measure();
                 tmp2 = readLDRs();
-                if(i<60){
-                    // objectDist[0][i] = tmp;
-                    // objectDist[1][i] = tmp2;
-                }
                 if(tmp2 > 0){
                     sendToPC(i);                    //send angle
-//                    sendToPC(tmp);                  //send val
                     sendToPC(tmp2);                  //send val
                     sendToPC(1);                    //measure = 0 / light = 1
                 }
@@ -156,8 +147,6 @@ void servo_sweep(unsigned int l, unsigned int r){ //l<r
                 break;
             case state8:
                 tmp = ultrasonic_measure();
-                if(i<60)
-                    // objectDist[0][i]= tmp;
                 if( tmp <= maskDist ){
                     sendToPC(i);                    //send angle
                     sendToPC(tmp);                  //send val
@@ -266,40 +255,40 @@ unsigned int readLDRs(){
     lcd_home();
 
     output_voltage1 = scanLDR1();
-    output_voltage2 = scanLDR2();
+    // output_voltage2 = scanLDR2();
 
-    if((output_voltage1 == 1023) && (output_voltage2 == 1023))
+    if((output_voltage1 == 1023) /*&& (output_voltage2 == 1023)*/)
         return 0;
     unsigned int i = 0,j = 0;
     int notFound1 = 1,notFound2 = 1;
-    while(i<9 && notFound1){
+    while(i<10 && notFound1){
         if((lightToDist[0][i] < output_voltage1))
             i++;
         else{
             notFound1 = 0;
         }
     }
-    while(j<9 && notFound2){
-        if((lightToDist[1][j] < output_voltage2))
-            j++;
-        else{
-            notFound2 = 0;
-        }
-    }
+    // while(j<10 && notFound2){
+    //     if((lightToDist[1][j] < output_voltage2))
+    //         j++;
+    //     else{
+    //         notFound2 = 0;
+    //     }
+    // }
 //////////////////////////////////////////////
     intNumToString(output_voltage1,5);
     lcd_puts(counterToPrint);
-    lcd_puts("-");
-    intNumToString(output_voltage2,5);
-    lcd_puts(counterToPrint);
+    // lcd_puts("-");
+    // intNumToString(output_voltage2,5);
+    // lcd_puts(counterToPrint);
     lcd_new_line;
     lcd_data(i+'0');
-    lcd_puts("-");
-    lcd_data(j+'0');
+    // lcd_puts("-");
+    // lcd_data(j+'0');
 ////////////////////////////////////////////////
     timerA0On(500);
 
-    if((i==j) &&(i != 9))
+    if(/*(i==j) &&*/(i != 10))
         return mul(i,5);
     else
         return 0;
@@ -332,7 +321,13 @@ void loadScript(){
     enterLPM(0);
     enterLPM(0);
     enterLPM(0);
-    loadInToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)
+    if (is_text){
+        loadTextToMem();
+    }
+    else{
+        loadInToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)
+    }
+    
     timerA0On(15);
     TX_to_send[0] = 'x';
     TX_to_send[1] = 'x';
@@ -361,7 +356,7 @@ void playScript(){
     lcd_data('a');
     while(i < 10 && command){
         switch(*Flash_ptr++){
-            unsigned int tmp = Flash_ptr;
+            unsigned int tmp = (unsigned int)Flash_ptr;
 
             case 1:
                 inc_lcd(*Flash_ptr++);
@@ -420,22 +415,19 @@ static void erase_seg(volatile unsigned char *base){
 
 void wipe_info_DCB(void){
     FCTL3 = FWKEY;                     // unlock (LOCK=0)
-
-    erase_seg((volatile unsigned char*)0x1000); // D
-    erase_seg((volatile unsigned char*)0x1040); // C
-    erase_seg((volatile unsigned char*)0x1080); // B
-
-    FCTL3 = FWKEY | LOCK;              // relock
+    erase_seg(0x1000); // D
+    erase_seg(0x1040); // C
+    erase_seg(0x1080); // B
+    FCTL3 = FWKEY | LOCK;              // lock (LOCK=1)
 }
 
 void erase_segments_4_3_2_1(void){
-
-    FCTL3 = FWKEY;                  // unlock
+    FCTL3 = FWKEY;                     // unlock (LOCK=0)
     erase_seg(0xF600);
     erase_seg(0xF800);
     erase_seg(0xFA00);
     erase_seg(0xFC00);
-    FCTL3 = FWKEY | LOCK;           // relock
+    FCTL3 = FWKEY | LOCK;              // lock (LOCK=1)
 }
 //---------------------------------------------------------------------
 //            inc lcd up to x
@@ -497,6 +489,3 @@ void rra_lcd(char x){
 void set_delay_d(int d){
     delayS = mul(d ,10);
 }
-
-
-

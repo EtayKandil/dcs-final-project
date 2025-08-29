@@ -1,16 +1,7 @@
 #include  "../header/bsp_430G2553.h"
 #include  "../header/halGPIO.h"
 
-// struct fileManager ScriptPtrArr[10] = {{{0}, 'e', 0, 0}, 
-//                             {{0}, 'e', 0, 0}, 
-//                             {{0}, 'e', 0, 0}, 
-//                             {{0}, 'e', 0, 0}, 
-//                             {{0}, 'e', 0, 0}, 
-//                             {{0}, 'e', 0, 0}, 
-//                             {{0}, 'e', 0, 0}, 
-//                             {{0}, 'e', 0, 0}, 
-//                             {{0}, 'e', 0, 0},
-//                             {{0}, 'e', 0, 0}};
+
 unsigned int num_of_files = 0;
 
 //-----------------------------------------------------------------------------  
@@ -123,13 +114,13 @@ void FileModeConfig(void){
 
     while(count < 10)
     {
-        count++;
-        char* status_ptr = (char *) (0x100B + MetaDataSize*count);
-        if(*status_ptr != 's' && *status_ptr != 't')
-            break;
+        
+      char* status_ptr = (char *) (0x100A + MetaDataSize*count);
+      if(*status_ptr != 's' && *status_ptr != 't')
+          break;
+      count++;
     }
     
     num_of_files = count;
 
 }
-

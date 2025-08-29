@@ -11,7 +11,7 @@ unsigned char TX_to_send[3] ;
 int TXindex = 0;
 int maskDist = 100;
 // char input[61];
-char input[201];
+char input[202];
 int input_slot = 0;
 int indexfile = 0;
 int state_or_num = 1;
@@ -21,6 +21,8 @@ unsigned int isScrolling = 0;
 unsigned int Status_name_data = 0;
 unsigned int memLoad = 0;
 unsigned int ptr_mov = 0;
+unsigned int is_file_done = 0;
+unsigned int is_text = 0;
 
 
 //--------------------------------------------------------------------
@@ -390,36 +392,79 @@ void loadInToMem(){  // load all script (input ,until input_slot-1 ,into memLoad
     FCTL3 = FWKEY;                                                  // Clear Lock bit
     *Flash_ptr = 0;                                                 // Dummy write to erase Flash segment
     FCTL1 = FWKEY + WRT;                                            // Set WRT bit for write operation
-    for (i=0; i < indexfile-1; i = i+2){                            // Write value to flash
+    for (i=0; i < indexfile-1; i = i+2){    
         if (Flash_ptr >= FileEnding){
             lcd_puts("No room for data");
             DelayMs(1000);
             lcd_clear();
             break;
         }
-        if(input[i] < 58){
-            unsigned int big = input[i] - '0';
-            big<<=4;
-            if(input[i+1] < 58)
-                *Flash_ptr++ = big + input[i+1] - '0';
-            else
-                *Flash_ptr++ = big + input[i+1] - 'a' + 10;
-        }
-        else{
-            unsigned int big = input[i] - 'a' + 10;
-            big<<=4;
-            if(input[i+1] < 58)
-                *Flash_ptr++ = big + input[i+1] - '0';
-            else
-                *Flash_ptr++ = big + input[i+1] - 'a' + 10;
-        }
+            if(input[i] < 58){
+                unsigned int big = input[i] - '0';
+                big<<=4;
+                if(input[i+1] < 58)
+                    *Flash_ptr++ = big + input[i+1] - '0';
+                else
+                    *Flash_ptr++ = big + input[i+1] - 'a' + 10;
+            }
+            else{
+                unsigned int big = input[i] - 'a' + 10;
+                big<<=4;
+                if(input[i+1] < 58)
+                    *Flash_ptr++ = big + input[i+1] - '0';
+                else
+                    *Flash_ptr++ = big + input[i+1] - 'a' + 10;
+            }
+        
     }
 
     FCTL1 = FWKEY;                                                  // Clear WRT bit
     FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit 
 
-    loadMetadataToMem(indexfile / 2, Flash_ptr);
-    num_of_files++;
+    loadMetadataToMem(indexfile / 2, FileStarting + size_sum);
+    if (is_file_done){
+        num_of_files++;
+    }
+        
+    
+    
+}
+
+
+//---------------------------------------------------------------------
+//            loading text data onto flash
+//---------------------------------------------------------------------
+void loadTextToMem(){  // load all script (input ,until input_slot-1 ,into memLoad place)
+    char *Flash_ptr;                                                // Flash pointer
+    unsigned int i;
+    unsigned int size_sum = 0;
+    for ( i = 0; i < num_of_files; i++)
+        size_sum = size_sum + *((unsigned int *) (0x100E + MetaDataSize * i));
+
+    Flash_ptr = (char *) FileStarting + size_sum;                             // Initialize Flash pointer
+    FCTL1 = FWKEY;                                                  // Set Erase bit
+    FCTL3 = FWKEY;                                                  // Clear Lock bit
+    *Flash_ptr = 0;                                                 // Dummy write to erase Flash segment
+    FCTL1 = FWKEY + WRT;                                            // Set WRT bit for write operation
+    for (i=0; i < indexfile-1;i++){    
+        if (Flash_ptr >= FileEnding){
+            lcd_puts("No room for data");
+            DelayMs(1000);
+            lcd_clear();
+            break;
+        }
+        *Flash_ptr++ = input[i];
+
+    }
+
+    FCTL1 = FWKEY;                                                  // Clear WRT bit
+    FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit 
+
+    loadMetadataToMem(indexfile - 1, FileStarting + size_sum);
+    if (is_file_done){
+        num_of_files++;
+    }
+    
 }
 
 //---------------------------------------------------------------------
@@ -433,7 +478,7 @@ void loadNameToMem(){  // load all script (input ,until input_slot-1 ,into memLo
     FCTL3 = FWKEY;                                                  // Clear Lock bit
     *name_ptr = 0;                                                 // Dummy write to erase Flash segment
     FCTL1 = FWKEY + WRT;                                            // Set WRT bit for write operation
-    for (i=0; i < 10; i++){                            // Write value to flash
+    for (i=0; i < 10 && input[i] != '\n'; i++){                            // Write value to flash
         if (name_ptr >= 0x10BE){
             lcd_puts("No room for name");
             DelayMs(1000);
@@ -454,7 +499,7 @@ void loadMetadataToMem(unsigned int size, char* Flash_ptr){  // load all script 
     FCTL1 = FWKEY + WRT;                                            // Set WRT bit for write operation
     
     char** file_ptr_ptr = (char **) (0x100C + MetaDataSize*num_of_files);
-    *file_ptr_ptr =  Flash_ptr - size;
+    *file_ptr_ptr =  Flash_ptr;
     unsigned int* size_ptr = (unsigned int *) (0x100E + MetaDataSize*num_of_files);
     *size_ptr = size;
 
@@ -513,7 +558,10 @@ void printLcdBottom(char *toPrint, unsigned int n){
 		PBsArrIntPend &= ~PB0;
         lcd_clear();
         printLcdTop((char*)(0x1000 + MetaDataSize*LCD_roll),10);
-        printLcdBottom((char*)(0x1000 + MetaDataSize*((LCD_roll + 1) % (num_of_files))),10);
+        if (((LCD_roll + 1) % (num_of_files)) != 0)
+            printLcdBottom((char*)(0x1000 + MetaDataSize*((LCD_roll + 1) % (num_of_files))),10);
+        
+        // printLcdBottom((char*)(0x1000 + MetaDataSize*((LCD_roll + 1) % (num_of_files))),10);
         LCD_roll ++;
         if(LCD_roll > (num_of_files - 1))
             LCD_roll = 0;
@@ -668,7 +716,6 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
   indexfile = input_slot;
   if (input[input_slot-1] == '\n')
   {
-      input[input_slot-1] = 'k';
       input_slot = 0;
       if(state_or_num){                     //state mode
           switch(input[0]){
@@ -688,6 +735,8 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
               case '5' :
                   state = state5;
                   state_or_num = 0;
+                  is_file_done = 0;
+                  is_text = 0;
                   break;
               case '6' :
                   state = state6;
@@ -717,9 +766,13 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
               state_or_num = 1;
           }
           else if(state == state5){
-
+                if (input_slot <= 199){
+                    is_file_done = 1;
+                }
+            
               if(Status_name_data == 0){
                 Status_name_data = 1;
+                is_file_done = 0;
                 FCTL1 = FWKEY + ERASE;                                          // Set Erase bit
                 FCTL3 = FWKEY;                                                  // Clear Lock bit
                 FCTL1 = FWKEY + WRT;
@@ -728,6 +781,10 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
 
                 FCTL1 = FWKEY;                                                  // Clear WRT bit
                 FCTL3 = FWKEY + LOCK;                                           // Set LOCK bit
+                if (input[0] == 't'){
+                    is_text = 1;
+                }
+                
               }
               else if(Status_name_data == 1){
                 Status_name_data = 2;
@@ -735,7 +792,7 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
                 
               }
 
-              else if (Status_name_data == 2){
+              else if (Status_name_data == 2 && is_file_done){
                 Status_name_data = 0;
                 state_or_num = 1;
               }

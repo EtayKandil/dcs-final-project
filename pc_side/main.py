@@ -22,7 +22,7 @@ def menu_switch(event):
         return '3'
     elif event == "Light Sources and Objects Detector System":
         return '4'
-    elif event == "Load Script":
+    elif event == "Load File":
         return '5'
     elif event == "set mask distance (0-200)cm (def == 100)":
         return '6'
@@ -30,7 +30,7 @@ def menu_switch(event):
         return '7'
     elif event == "Play Script (1...10)":
         return '8'
-    elif event == "Delete all scripts":
+    elif event == "Delete All Files":
         return '9'
 def decTohex(str):
     temp = int(str)
@@ -100,39 +100,15 @@ def main():
               [sg.Button("Light Sources Detector System")],
               [sg.Button("Light Sources and Objects Detector System")],
               [sg.Text("first 10 scripts will load to 1, 2, 3 by order")],
-              [sg.Button("Load Script"), sg.InputText(key='-FILE-'), sg.FileBrowse()],
+              [sg.Button("Load File"), sg.InputText(key='-FILE-'), sg.FileBrowse()],
               [sg.Button("Play Script (1...10)"), sg.InputText(key='ScriptNum')],
-              [sg.Button("Delete All scripts")],
+              [sg.Button("Delete All Files")],
               [sg.Button("Exit")]]
     window = sg.Window(title = "Events Menu", layout= layout)
 
     count = 0
     count2 = 0
     while (event != "Exit"):
-        # RX
-        # lineByte = s.read_until(size=3) #
-        # if "xx0" == lineByte.decode("ascii"):
-        #     scriptNum = 0
-        # if "xx1" == lineByte.decode("ascii"):
-        #     scriptNum = 1
-        # if "xx2" == lineByte.decode("ascii"):
-        #     scriptNum = 2
-        # if "xx3" == lineByte.decode("ascii"):
-        #     scriptNum = 3
-        # if "xx4" == lineByte.decode("ascii"):
-        #     scriptNum = 4
-        # if "xx5" == lineByte.decode("ascii"):
-        #     scriptNum = 5
-        # if "xx6" == lineByte.decode("ascii"):
-        #     scriptNum = 6
-        # if "xx7" == lineByte.decode("ascii"):
-        #     scriptNum = 7
-        # if "xx8" == lineByte.decode("ascii"):
-        #     scriptNum = 8
-        # if "xx9" == lineByte.decode("ascii"):
-        #     scriptNum = 9
-        # if "xx:" == lineByte.decode("ascii"):
-        #     scriptNum = 10
         while (s.in_waiting > 0):  # while the input buffer isn't empty
             if event == "Objects Detector System" or event == "Light Sources Detector System" or event == "Light Sources and Objects Detector System":
                 lineByte = s.read_until(size=3)  # read  from the buffer until the terminator is received,
@@ -245,37 +221,37 @@ def main():
                     start_dot = [rad[count], angle[count]]
                 count += 1
 
-            elif event == "Load Script":
+            elif event == "Load File":
                 lineByte = s.read_until(size=3)
                 if lineByte.decode("ascii") == "xx1":
-                    print("script has loaded to slot 1")
+                    print("File has loaded to slot 1")
                 elif lineByte.decode("ascii") == "xx2":
-                    print("script has loaded to slot 2")
+                    print("File has loaded to slot 2")
                 elif lineByte.decode("ascii") == "xx3":
-                    print("script has loaded to slot 3")
+                    print("File has loaded to slot 3")
                 elif lineByte.decode("ascii") == "xx4":
-                    print("script has loaded to slot 4")
+                    print("File has loaded to slot 4")
                 elif lineByte.decode("ascii") == "xx5":
-                    print("script has loaded to slot 5")
+                    print("File has loaded to slot 5")
                 elif lineByte.decode("ascii") == "xx6":
-                    print("script has loaded to slot 6")
+                    print("File has loaded to slot 6")
                 elif lineByte.decode("ascii") == "xx7":
-                    print("script has loaded to slot 7")
+                    print("File has loaded to slot 7")
                 elif lineByte.decode("ascii") == "xx8":
-                    print("script has loaded to slot 8")
+                    print("File has loaded to slot 8")
                 elif lineByte.decode("ascii") == "xx9":
-                    print("script has loaded to slot 9")
+                    print("File has loaded to slot 9")
                 elif lineByte.decode("ascii") == "xx:":
-                    print("script has loaded to slot 10")
+                    print("File has loaded to slot 10")
                 else:
                     print("something went wrong send again :( ")
                 event = "first time"
                 enableTX = True
 
-            elif event == "Delete all scripts":
+            elif event == "Delete All Files":
                 lineByte = s.read_until(size=3)
                 if "xxx" == lineByte.decode("ascii"):
-                    print("all scripts deleted")
+                    print("All files deleted")
                     scriptNum = 0
                     enableTX = True
 
@@ -335,15 +311,39 @@ def main():
                     filename = file_path[i + 1:] if i != -1 else file_path  # e.g. "script1_code.txt"
                     name = filename.rsplit('.', 1)[0]  # e.g. "script1_code"
                     scriptNum += 1
-                    bytetxVal = bytes('s' + '\n', 'ascii')
+                    if (name.startswith("text")):
+                        bytetxVal = bytes('t' + '\n', 'ascii')
+                    else:
+                        bytetxVal = bytes('s' + '\n', 'ascii')
+
                     s.write(bytetxVal)
                     time.sleep(0.25)
                     bytetxVal = bytes(name + '\n', 'ascii')
                     s.write(bytetxVal)
                     time.sleep(0.25)
-                    bytetxVal = bytes(txtToHex(openFile(val['-FILE-'])) + '\n', 'ascii')
-                    s.write(bytetxVal)
-                    time.sleep(0.25)  # delay for accurate read/write operations on both ends
+                    content = openFile(val['-FILE-'])
+                    if (name.startswith("text")):
+                        bytetxVal = bytes(content  + '\n', 'ascii')
+
+                    else:
+                        bytetxVal = bytes(txtToHex(content)  + '\n', 'ascii')
+
+                    k = 0
+                    if (len(bytetxVal) > 200):
+                        tmp = len(bytetxVal) // 200
+                        while (k < tmp):
+                            part = bytetxVal[k * 200:(k + 1) * 200] + b'\n'
+                            s.write(part)
+                            time.sleep(0.25)
+                            k += 1
+                        if (len(bytetxVal) % 200 != 0):
+                            part = bytetxVal[k * 200:] + b'\n'
+                            s.write(part)
+                            time.sleep(0.25)
+                    else:
+                        s.write(bytetxVal)
+                        time.sleep(0.25)  # delay for accurate read/write operations on both end
+
                 if s.out_waiting == 0:
                     enableTX = False
             elif s.out_waiting == 0 and state == '8':

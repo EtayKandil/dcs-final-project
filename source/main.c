@@ -52,10 +52,6 @@ enum SYSmode lpm_mode;
 
       case state5:
         PBsArrIntEn &= ~0x81;
-        // TX_to_send[0] = 'x';
-        // TX_to_send[1] = 'x';
-        // TX_to_send[2] = '0'+ num_of_files;
-        // enable_send_to_pc();
         loadScript();
         state = state0;
         PBsArrIntEn |= 0x81;
@@ -76,10 +72,6 @@ enum SYSmode lpm_mode;
           break;
       case state8:
           PBsArrIntEn &= ~0x81;
-        // TX_to_send[0] = 'x';
-        // TX_to_send[1] = 'x';
-        // TX_to_send[2] = '0'+ num_of_files;
-        // enable_send_to_pc();
           playScript();
           PBsArrIntEn |= 0x81;
           break;
@@ -92,7 +84,3 @@ enum SYSmode lpm_mode;
   }
 
 }
-
-
-
-

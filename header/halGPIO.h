@@ -21,10 +21,11 @@ extern int state_or_num;
 extern unsigned int memLoad;
 extern int input_slot;
 extern unsigned int first_time;
-
+extern unsigned int is_text;
 extern unsigned int modulo(unsigned int a, unsigned int b);
 extern unsigned int diveide(unsigned int a, unsigned int b);
 extern unsigned int mul(unsigned int a, unsigned int b);
+// extern char *Flash_ptr;
 
 // struct fileManager{
 //     char fileName[11]; // file name
@@ -44,6 +45,9 @@ extern void disable_interrupts();
 extern void setTA0CCR0(int set);
 
 extern void loadInToMem();
+extern void loadTextToMem();
+extern void loadNameToMem();
+// extern void loadMetadataToMem(unsigned int size);
 
 
 extern void disable_TimerA_ultrasonic();
@@ -56,6 +60,8 @@ extern void disable_TimerA0();
 
 
 extern void enable_send_to_pc();
+
+
 
 extern void enable_ADC10LDR1();
 extern void enable_ADC10LDR1();

@@ -329,15 +329,18 @@ def main():
                         bytetxVal = bytes(txtToHex(content)  + '\n', 'ascii')
 
                     k = 0
+                    print(len(bytetxVal))
                     if (len(bytetxVal) > 200):
                         tmp = len(bytetxVal) // 200
                         while (k < tmp):
                             part = bytetxVal[k * 200:(k + 1) * 200] + b'\n'
+                            print(len(part))
                             s.write(part)
                             time.sleep(0.25)
                             k += 1
                         if (len(bytetxVal) % 200 != 0):
-                            part = bytetxVal[k * 200:] + b'\n'
+                            part = bytetxVal[k * 200:]
+                            print(len(part))
                             s.write(part)
                             time.sleep(0.25)
                     else:

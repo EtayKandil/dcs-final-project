@@ -323,6 +323,9 @@ void loadScript(){
     enterLPM(0);
     if (is_text){
         loadTextToMem();
+        // enterLPM(0);
+        enterLPM(0);
+        loadTextToMem();
     }
     else{
         loadInToMem(); // load all script (input ,until input_slot-1 ,into memLoad place)

@@ -426,9 +426,6 @@ void loadInToMem(){  // load all script (input ,until input_slot-1 ,into memLoad
     if (is_file_done){
         num_of_files++;
     }
-        
-    
-    
 }
 
 
@@ -452,6 +449,7 @@ void loadTextToMem(){  // load all script (input ,until input_slot-1 ,into memLo
             lcd_puts("No room for data");
             DelayMs(1000);
             lcd_clear();
+            sendEndSigScriptToPC();
             break;
         }
         *Flash_ptr++ = input[i];
@@ -576,10 +574,8 @@ void printLcdBottom(char *toPrint, unsigned int n){
              LCD_roll ++;
              if(LCD_roll > (num_of_files - 1))
                 LCD_roll = 0;
-
             }
         
-
         printLcdTop((char*)(0x1000 + MetaDataSize*LCD_roll),10);
         LCD_roll++;
         // if (((LCD_roll + 1) % (num_of_files)) != 0)

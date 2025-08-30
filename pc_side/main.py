@@ -82,6 +82,9 @@ def remove_newlines(text: str) -> str:
     return text.replace('\n', ' ')
 
 
+
+
+
 def main():
     event = "first time"
     scriptNum = 0
@@ -147,7 +150,9 @@ def main():
                         length = length + 1
                     else:
                         if length == 0:
-                            turtle_code.draw_dot(color[count-1], rad[count-1], angle[count-1])
+                            # turtle_code.draw_dot(color[count-1], rad[count-1], angle[count-1])
+                            smart = False
+                            ohad = smart
                         else:
                             turtle_code.draw_line(color[count-1], start_dot[0], start_dot[1], end_dot[0], end_dot[1])
                         length = 0
@@ -199,6 +204,12 @@ def main():
                             turtle_code.draw_line(color[count - 1], start_dot[0], start_dot[1], end_dot[0], end_dot[1])
                         count = 0
                     break
+                if "err" == lineByte.decode("ascii"):
+                    print("its a text file please choose a script file")
+                    s.reset_input_buffer()
+                    event = "first time"
+                    enableTX = True
+                    break
                 if count == 0:
                     turtle_code.t.clear()
                     turtle_code.draw_half_circle()
@@ -249,6 +260,8 @@ def main():
                     print("File has loaded to slot 9")
                 elif lineByte.decode("ascii") == "xx:":
                     print("File has loaded to slot 10")
+                elif lineByte.decode("ascii") == "zzz":
+                    print("Flash memory is full, delete files to load more")
                 else:
                     print("something went wrong send again :( ")
                 event = "first time"
@@ -326,15 +339,18 @@ def main():
                     s.write(bytetxVal)
                     time.sleep(0.25)
 
-                    content = remove_newlines(content)
+                    # content = remove_newlines(content)
                     bytetxVal = bytes(name + '\n', 'ascii')
                     s.write(bytetxVal)
                     time.sleep(0.25)
+                    print(len(content))
                     if (name.startswith("text")):
+                        content = remove_newlines(content)
                         bytetxVal = bytes(content  + '\n', 'ascii')
 
                     else:
                         bytetxVal = bytes(txtToHex(content)  + '\n', 'ascii')
+                    print(len(bytetxVal))
 
                     k = 0
                     if (len(bytetxVal) > 200):

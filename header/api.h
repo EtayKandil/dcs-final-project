@@ -25,6 +25,7 @@ extern void LDRconfig();
 extern void sendToPC(unsigned int num);
 extern void sendEndSigToPC();
 extern void sendEndSigScriptToPC();
+extern void sendErrSigScriptToPC();
 extern void  delete_all_files();
 extern unsigned int readLDRs();
 

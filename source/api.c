@@ -7,19 +7,19 @@ char counterToPrint[5];
 unsigned int lightToDist[2][10] = {{600,650,692,734,776,818,860,902,950,1023},
                                    {540,600,635,670,705,740,775,810,1000,1000}};
 int delayS = 500;
-
+unsigned int accLight=0;
 
 //---------------------------------------------------------------------
 //            LDR config
 //---------------------------------------------------------------------
 void LDRconfig(){
     int i;
-    int j;
     lcd_clear();
     lcd_home();
     servo_Tolocation(90,750);
     for(i = 0; i < 10; i++){
-        lcd_puts("move flashlight");
+        accLight = 0;
+        // lcd_puts("move flashlight");
         lcd_new_line;
         lcd_puts("scan in 3 sec");
         timerA0On(1000);
@@ -33,14 +33,19 @@ void LDRconfig(){
         timerA0On(1000);
         lcd_clear();
         lcd_home();
-        lightToDist[0][i] = scanLDR1();
+        int j;
+        for (  j =0 ; j<16 ; j++) {
+            accLight += scanLDR1();
+            timerA0On(500);
+        }
+        accLight /= 16;
+        lightToDist[0][i] = accLight;
         // lightToDist[1][i] = scanLDR2();
         intNumToString(lightToDist[0][i],5);
         lcd_puts(counterToPrint);
-        // lcd_puts("-");
+        lcd_puts("-");
         // intNumToString(output_voltage2,5);
         // lcd_puts(counterToPrint);
-        lcd_new_line;
         lcd_data(i+'0');
         timerA0On(1000);
     }
@@ -85,7 +90,13 @@ void sendEndSigScriptToPC(){
     enable_send_to_pc();
 }
 
-
+void sendErrSigScriptToPC(){
+    timerA0On(15);
+    TX_to_send[0] = 'e';
+    TX_to_send[1] = 'r';
+    TX_to_send[2] = 'r';
+    enable_send_to_pc();
+}
 
 //---------------------------------------------------------------------
 //            timerA0On
@@ -249,7 +260,6 @@ unsigned int ultrasonic_measure(){
     ///////////////////////////////////////////////////////////////
     dist = 0;
     return to_return;
-
 }
 
 //---------------------------------------------------------------------
@@ -361,10 +371,16 @@ void loadScript(){
 //---------------------------------------------------------------------
 void playScript(){
     enterLPM(0);
+    if (*((char *) (0x100A + MetaDataSize*(memLoad -1))) != 's')
+    {
+        sendErrSigScriptToPC();
+        return;
+    }
+    
     unsigned int size_sum = 0;
     unsigned int i;
     char *Flash_ptr;
-    for ( i = 0; i < (memLoad -1); i++)
+    for ( i = 0; i < (memLoad - 1); i++)
         size_sum = size_sum + *((unsigned int *) (0x100E + MetaDataSize * i));
 
     Flash_ptr = (char *) FileStarting + size_sum;
@@ -373,7 +389,7 @@ void playScript(){
     x = *Flash_ptr;
     if((x<1) || (8<x))
         command = 0;
-    lcd_data('a');
+        
     while(i < 10 && command){
         switch(*Flash_ptr++){
             unsigned int tmp = (unsigned int)Flash_ptr;

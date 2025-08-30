@@ -24,6 +24,8 @@ unsigned int ptr_mov = 0;
 unsigned int is_file_done = 0;
 unsigned int is_text = 0;
 unsigned int size_of_curr_file = 0;
+unsigned int view_mode = 0;
+unsigned int curr_file = 0;
 
 
 //--------------------------------------------------------------------
@@ -389,7 +391,7 @@ void loadInToMem(){  // load all script (input ,until input_slot-1 ,into memLoad
         size_sum = size_sum + *((unsigned int *) (0x100E + MetaDataSize * i));
 
     Flash_ptr = (char *) FileStarting + size_sum + size_of_curr_file;                             // Initialize Flash pointer
-    FCTL1 = FWKEY ;                                          // Set Erase bit
+    FCTL1 = FWKEY;                                          // Set Erase bit
     FCTL3 = FWKEY;                                                  // Clear Lock bit
     *Flash_ptr = 0;                                                 // Dummy write to erase Flash segment
     FCTL1 = FWKEY + WRT;                                            // Set WRT bit for write operation
@@ -568,46 +570,69 @@ void printLcdBottom(char *toPrint, unsigned int n){
 
 	if(PBsArrIntPend & PB0){
 		PBsArrIntPend &= ~PB0;
-        lcd_clear();
-        unsigned int i;
-        while (*(char*)(0x100A + MetaDataSize*LCD_roll) != 't' ){ //infinite loop if no texts are found
-             LCD_roll ++;
-             if(LCD_roll > (num_of_files - 1))
+         if (num_of_files == 0){
+            lcd_clear();
+            lcd_puts("No files");
+         }
+        // view_mode != view_mode; // 0 for headers 1 for content
+
+        // }
+        // {
+            // lcd_clear();
+            // unsigned int i;
+            // while (*(char*)(0x100A + MetaDataSize*LCD_roll) != 't' ){ //infinite loop if no texts are found
+            //      LCD_roll ++;
+            //      if(LCD_roll > (num_of_files - 1))
+        //         LCD_roll = 0;
+        //     }
+        else {
+            lcd_clear();
+            printLcdTop((char*)(0x1000 + MetaDataSize*((LCD_roll + 1) % (num_of_files))),10);
+            if (((LCD_roll + 1) % (num_of_files)) != 0)
+                printLcdBottom((char*)(0x1000 + MetaDataSize*((LCD_roll + 2) % (num_of_files))),10);
+            LCD_roll++;
+            if (LCD_roll > (num_of_files-1)){
                 LCD_roll = 0;
             }
-        
-        printLcdTop((char*)(0x1000 + MetaDataSize*LCD_roll),10);
-        LCD_roll++;
-        // if (((LCD_roll + 1) % (num_of_files)) != 0)
-        //     printLcdBottom((char*)(0x1000 + MetaDataSize*((LCD_roll + 1) % (num_of_files))),10);
-        
-        
-       
-           
-        
-        DelayMs(500);
-        isScrolling = 1;
-        size_left = 0;
-        ptr_mov = 0;
-	}
+            
+            DelayMs(500);
+            isScrolling = 1;
+            size_left = 0;
+            ptr_mov = 0;
+	    }
+    }
     else if(PBsArrIntPend & PB1){
         PBsArrIntPend &= ~PB1;
+        // lcd_clear();
+        // if view_mode{
+        //     lcd_clear();
+        //      while (*(char*)(0x100A + MetaDataSize*curr_file) != 't' )
+
+        // }
+
         lcd_clear();
-        if (isScrolling == 1){
-            size_left = *((unsigned int *) (0x100E + MetaDataSize*LCD_roll));
-            showScript(LCD_roll - 1);
+        if (isScrolling == 1 && *((char *) (0x100A + MetaDataSize*LCD_roll)) != 't'){
+            lcd_home();
+            lcd_puts("Error can't ");
+            lcd_new_line;
+            lcd_puts("print script");
+        }
+        
+        else if (isScrolling == 1){
+            size_left = *((unsigned int *) (0x100E + MetaDataSize*(LCD_roll)));
+            showScript(LCD_roll);
             isScrolling = 2;
             
         }
         else if (isScrolling == 2 && size_left > 0){
-            showScript(LCD_roll - 1);
+            showScript(LCD_roll);
             isScrolling = 2;
             ptr_mov++;
 
         }
         else if (isScrolling == 2 && size_left <= 0){
             size_left = *((unsigned int *) (0x100E + MetaDataSize*LCD_roll));
-            showScript(LCD_roll - 1);
+            showScript(LCD_roll);
             ptr_mov = 0;
         }
     }
